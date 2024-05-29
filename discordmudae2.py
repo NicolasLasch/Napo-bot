@@ -1,7 +1,8 @@
-import json
+import os
 import discord
 from discord.ext import commands
 import random
+import json
 from PIL import Image, ImageDraw, ImageFont
 import io
 
@@ -59,13 +60,13 @@ async def roll(ctx):
     if not cards:
         await ctx.send('No cards available. Please add cards first.')
         return
-    
+
     card = random.choice(cards)
     user = ctx.message.author
-    
+
     if str(user.id) not in user_collections:
         user_collections[str(user.id)] = []
-    
+
     user_collections[str(user.id)].append(card)
     card['claimed_by'] = user.id
     save_data(cards, user_collections)
@@ -78,7 +79,7 @@ async def mm(ctx):
     if str(user.id) not in user_collections or not user_collections[str(user.id)]:
         await ctx.send('You have no cards in your collection.')
         return
-    
+
     collection = user_collections[str(user.id)]
     collection_list = '\n'.join([f'{card["name"]} ({card["rank"]}) - {card["description"]} (Value: {card["value"]})' for card in collection])
     await ctx.send(f'Your collection:\n{collection_list}')
@@ -90,7 +91,7 @@ async def mmi(ctx):
     if str(user.id) not in user_collections or not user_collections[str(user.id)]:
         await ctx.send('You have no cards in your collection.')
         return
-    
+
     collection = user_collections[str(user.id)]
     for card in collection:
         embed = discord.Embed(title=card["name"], description=card["description"])
@@ -106,7 +107,7 @@ async def im(ctx, name: str):
     if not card:
         await ctx.send('Card not found.')
         return
-    
+
     claimed_status = "Not claimed" if not card["claimed_by"] else f'Claimed by <@{card["claimed_by"]}>'
     embed = discord.Embed(title=card["name"], description=card["description"])
     embed.add_field(name="Rank", value=card["rank"])
@@ -119,31 +120,30 @@ async def im(ctx, name: str):
 async def trade(ctx, user: discord.User, card_name: str, trade_card_name: str):
     """Command to trade cards with another user."""
     sender = ctx.message.author
-    
+
     if str(sender.id) not in user_collections or not user_collections[str(sender.id)]:
         await ctx.send('You have no cards to trade.')
         return
-    
     sender_card = next((c for c in user_collections[str(sender.id)] if c['name'].lower() == card_name.lower()), None)
     receiver_card = next((c for c in user_collections[str(user.id)] if c['name'].lower() == trade_card_name.lower()), None)
-    
+
     if not sender_card:
         await ctx.send(f'You do not have the card {card_name}.')
         return
-    
+
     if not receiver_card:
         await ctx.send(f'{user.display_name} does not have the card {trade_card_name}.')
         return
-    
+
     # Perform the trade
     user_collections[str(sender.id)].remove(sender_card)
     user_collections[str(user.id)].remove(receiver_card)
     user_collections[str(sender.id)].append(receiver_card)
     user_collections[str(user.id)].append(sender_card)
-    
+
     sender_card['claimed_by'] = user.id
     receiver_card['claimed_by'] = sender.id
-    
+
     save_data(cards, user_collections)
     await ctx.send(f'Trade successful! {sender.display_name} traded {card_name} with {user.display_name} for {trade_card_name}.')
 
@@ -159,4 +159,4 @@ async def add_card_code(name: str, value: int, rank: str, description: str, imag
 add_card_code('Hero', 150, 'A', 'A brave hero.', 'http://example.com/hero.png')
 add_card_code('Villain', 120, 'B', 'A cunning villain.', 'http://example.com/villain.png')
 
-bot.run('YOUR_DISCORD_BOT_TOKEN')
+bot.run(os.getenv('DISCORD_BOT_TOKEN'))
