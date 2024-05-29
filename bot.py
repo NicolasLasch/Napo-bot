@@ -196,20 +196,6 @@ async def balance_app(interaction: discord.Interaction):
     coins = user_data.get(user_id, {}).get('coins', 0)
     await interaction.response.send_message(f"You have {coins} coins.", ephemeral=True)
 
-@bot.command(name="buyluck")
-async def buyluck(ctx):
-    user_id = str(ctx.author.id)
-    coins = user_data.get(user_id, {}).get('coins', 0)
-    if coins < 500:
-        await ctx.send("You need at least 500 coins to buy more luck.")
-        return
-
-    user_data[user_id]['coins'] -= 500
-    user_data[user_id].setdefault('luck', 0)
-    user_data[user_id]['luck'] += 1
-    save_data(cards, user_collections, user_data)
-    await ctx.send("You have purchased more luck for 500 coins!")
-
 @bot.tree.command(name="buyluck", description="Buy more luck for 500 coins")
 async def buyluck_app(interaction: discord.Interaction):
     user_id = str(interaction.user.id)
@@ -309,7 +295,8 @@ async def mm(ctx, page: int = 1):
     end = start + items_per_page
     collection_page = collection[start:end]
     collection_list = '\n'.join([f'**{card["name"]}** ({card["rank"]}) - {card["description"]} (Value: {card["value"]} 💎)' for card in collection_page])
-    await ctx.send(f'Your collection (Page {page}/{total_pages}):\n{collection_list}')
+    embed = discord.Embed(title=f'Your collection (Page {page}/{total_pages})', description=collection_list)
+    await ctx.send(embed=embed)
 
 @bot.tree.command(name="mm", description="Display your collection in text")
 @app_commands.describe(page="Page number to display")
@@ -331,7 +318,107 @@ async def mm_app(interaction: discord.Interaction, page: int = 1):
     end = start + items_per_page
     collection_page = collection[start:end]
     collection_list = '\n'.join([f'**{card["name"]}** ({card["rank"]}) - {card["description"]} (Value: {card["value"]} 💎)' for card in collection_page])
-    await interaction.response.send_message(f'Your collection (Page {page}/{total_pages}):\n{collection_list}', ephemeral=True)
+    embed = discord.Embed(title=f'Your collection (Page {page}/{total_pages})', description=collection_list)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+@bot.command(name="top")
+async def top(ctx, page: int = 1):
+    """Command to display the top characters globally in text."""
+    if not cards:
+        await ctx.send('No cards available.')
+        return
+
+    sorted_cards = sorted(cards, key=lambda x: x['rank'], reverse=True)
+    items_per_page = 10
+    total_pages = (len(sorted_cards) + items_per_page - 1) // items_per_page
+
+    if page < 1 or page > total_pages:
+        await ctx.send(f'Page {page} is out of range. There are {total_pages} pages in total.')
+        return
+
+    start = (page - 1) * items_per_page
+    end = start + items_per_page
+    top_page = sorted_cards[start:end]
+    top_list = '\n'.join([f'**{card["name"]}** ({card["rank"]}) - {card["description"]} (Value: {card["value"]} 💎)' for card in top_page])
+    embed = discord.Embed(title=f'Top characters globally (Page {page}/{total_pages})', description=top_list)
+    await ctx.send(embed=embed)
+
+@bot.tree.command(name="top", description="Display the top characters globally in text")
+@app_commands.describe(page="Page number to display")
+async def top_app(interaction: discord.Interaction, page: int = 1):
+    if not cards:
+        await interaction.response.send_message('No cards available.', ephemeral=True)
+        return
+
+    sorted_cards = sorted(cards, key=lambda x: x['rank'], reverse=True)
+    items_per_page = 10
+    total_pages = (len(sorted_cards) + items_per_page - 1) // items_per_page
+
+    if page < 1 or page > total_pages:
+        await interaction.response.send_message(f'Page {page} is out of range. There are {total_pages} pages in total.', ephemeral=True)
+        return
+
+    start = (page - 1) * items_per_page
+    end = start + items_per_page
+    top_page = sorted_cards[start:end]
+    top_list = '\n'.join([f'**{card["name"]}** ({card["rank"]}) - {card["description"]} (Value: {card["value"]} 💎)' for card in top_page])
+    embed = discord.Embed(title=f'Top characters globally (Page {page}/{total_pages})', description=top_list)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+class GlobalPaginator(discord.ui.View):
+    def __init__(self, ctx, collection, user_data):
+        super().__init__(timeout=60)
+        self.ctx = ctx
+        self.collection = collection
+        self.user_data = user_data
+        self.current_page = 0
+
+    async def send_initial_message(self):
+        embed = self.create_embed()
+        await self.ctx.send(embed=embed, view=self)
+
+    def create_embed(self):
+        card = self.collection[self.current_page]
+        embed = discord.Embed(title=card["name"], description=card["description"])
+        embed.add_field(name="Rank", value=card["rank"])
+        embed.add_field(name="Value", value=f'{card["value"]} 💎')
+        embed.set_image(url=card["image_url"])
+        return embed
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
+    async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if self.current_page > 0:
+            self.current_page -= 1
+            embed = self.create_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
+    async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if self.current_page < len(self.collection) - 1:
+            self.current_page += 1
+            embed = self.create_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
+
+@bot.command(name="topi")
+async def topi(ctx):
+    """Command to display the top characters globally with images."""
+    if not cards:
+        await ctx.send('No cards available.')
+        return
+
+    sorted_cards = sorted(cards, key=lambda x: x['rank'], reverse=True)
+    paginator = GlobalPaginator(ctx, sorted_cards, user_data)
+    await paginator.send_initial_message()
+
+@bot.tree.command(name="topi", description="Display the top characters globally with images")
+async def topi_app(interaction: discord.Interaction):
+    if not cards:
+        await interaction.response.send_message('No cards available.', ephemeral=True)
+        return
+
+    sorted_cards = sorted(cards, key=lambda x: x['rank'], reverse=True)
+    paginator = GlobalPaginator(interaction, sorted_cards, user_data)
+    await paginator.send_initial_message()
 
 @bot.command(name="im")
 async def im(ctx, name: str):
@@ -478,3 +565,4 @@ cards.extend(initial_cards)
 save_data(cards, user_collections, user_data)
 
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
+
