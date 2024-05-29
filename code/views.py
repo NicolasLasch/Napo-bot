@@ -1,5 +1,6 @@
 import discord
 from datetime import datetime, timedelta
+from discord.ext import commands
 from utils import save_data
 
 class ClaimButton(discord.ui.Button):
@@ -72,6 +73,13 @@ class Paginator(discord.ui.View):
         self.collection = collection
         self.current_page = 0
 
+    async def send_initial_message(self, ctx_or_interaction):
+        embed = self.create_embed()
+        if isinstance(ctx_or_interaction, commands.Context):
+            await ctx_or_interaction.send(embed=embed, view=self)
+        else:
+            await ctx_or_interaction.response.send_message(embed=embed, view=self)
+
     def create_embed(self):
         card = self.collection[self.current_page]
         embed = discord.Embed(title=card["name"], description=card["description"])
@@ -87,14 +95,14 @@ class Paginator(discord.ui.View):
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)  # Await needed to edit message
+            await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
     async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         if self.current_page < len(self.collection) - 1:
             self.current_page += 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)  # Await needed to edit message
+            await interaction.response.edit_message(embed=embed, view=self)
 
 class GlobalPaginator(discord.ui.View):
     def __init__(self, collection):
@@ -102,6 +110,13 @@ class GlobalPaginator(discord.ui.View):
         self.collection = collection
         self.current_page = 0
 
+    async def send_initial_message(self, ctx_or_interaction):
+        embed = self.create_embed()
+        if isinstance(ctx_or_interaction, commands.Context):
+            await ctx_or_interaction.send(embed=embed, view=self)
+        else:
+            await ctx_or_interaction.response.send_message(embed=embed, view=self)
+
     def create_embed(self):
         card = self.collection[self.current_page]
         embed = discord.Embed(title=card["name"], description=card["description"])
@@ -117,11 +132,11 @@ class GlobalPaginator(discord.ui.View):
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)  # Await needed to edit message
+            await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
     async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         if self.current_page < len(self.collection) - 1:
             self.current_page += 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)  # Await needed to edit message
+            await interaction.response.edit_message(embed=embed, view=self)

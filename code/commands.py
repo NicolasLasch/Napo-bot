@@ -16,7 +16,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         card = {'name': name, 'value': value, 'rank': rank, 'description': description, 'image_url': image_url, 'claimed_by': None}
         cards.append(card)
         save_data(cards, user_collections, user_data)
-        await interaction.response.send_message(f'Character {name} added successfully!', ephemeral=True)  # Await needed to send response to interaction
+        await interaction.response.send_message(f'Character {name} added successfully!', ephemeral=True)
 
     @bot.command(name="add_character")
     async def add_character_cmd(ctx, name: str, value: int, rank: str, description: str, image_url: str):
@@ -24,7 +24,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         card = {'name': name, 'value': value, 'rank': rank, 'description': description, 'image_url': image_url, 'claimed_by': None}
         cards.append(card)
         save_data(cards, user_collections, user_data)
-        await ctx.send(f'Character {name} added successfully!')  # Await needed to send message to channel
+        await ctx.send(f'Character {name} added successfully!')
 
     @bot.command(name="roll")
     @commands.cooldown(5, 3600, commands.BucketType.user)
@@ -50,9 +50,9 @@ def setup_commands(bot, cards, user_collections, user_data):
             embed.color = discord.Color.orange()
             view.add_item(ClaimButton(card, user_data, user_collections, cards))
 
-        message = await ctx.send(embed=embed, view=view)  # Await needed to send message with embed and view
-        await asyncio.sleep(45)  # Await needed to sleep asynchronously
-        await message.edit(content="Time to claim the character has expired.", view=None)  # Await needed to edit message
+        message = await ctx.send(embed=embed, view=view)
+        await asyncio.sleep(45)
+        await message.edit(content="Time to claim the character has expired.", view=None)
 
     @bot.tree.command(name="roll", description="Roll a random character card")
     async def roll_app(interaction: discord.Interaction):
@@ -77,9 +77,9 @@ def setup_commands(bot, cards, user_collections, user_data):
             embed.color = discord.Color.orange()
             view.add_item(ClaimButton(card, user_data, user_collections, cards))
 
-        message = await interaction.response.send_message(embed=embed, view=view)  # Await needed to send response to interaction with embed and view
-        await asyncio.sleep(45)  # Await needed to sleep asynchronously
-        await message.edit(content="Time to claim the character has expired.", view=None)  # Await needed to edit message
+        message = await interaction.response.send_message(embed=embed, view=view)
+        await asyncio.sleep(45)
+        await message.edit(content="Time to claim the character has expired.", view=None)
 
     @bot.command(name="mmi")
     async def mmi(ctx):
@@ -111,7 +111,28 @@ def setup_commands(bot, cards, user_collections, user_data):
 
         paginator = Paginator(collection)
         await paginator.send_initial_message(interaction)
-        
+
+    @bot.command(name="topi")
+    async def topi(ctx):
+        """Command to display the top characters globally with images."""
+        if not cards:
+            await ctx.send('No cards available.')
+            return
+
+        sorted_cards = sorted(cards, key=rank_sort_key)
+        paginator = GlobalPaginator(sorted_cards)
+        await paginator.send_initial_message(ctx)
+
+    @bot.tree.command(name="topi", description="Display the top characters globally with images")
+    async def topi_app(interaction: discord.Interaction):
+        if not cards:
+            await interaction.response.send_message('No cards available.', ephemeral=True)
+            return
+
+        sorted_cards = sorted(cards, key=rank_sort_key)
+        paginator = GlobalPaginator(sorted_cards)
+        await paginator.send_initial_message(interaction)
+
     @bot.command(name="balance")
     async def balance(ctx):
         user_id = str(ctx.author.id)
@@ -241,27 +262,6 @@ def setup_commands(bot, cards, user_collections, user_data):
         top_list = '\n'.join([f'**{card["name"]}** ({card["rank"]}) - {card["description"]} (Value: {card["value"]} 💎)' for card in top_page])
         embed = discord.Embed(title=f'Top characters globally (Page {page}/{total_pages})', description=top_list)
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    @bot.command(name="topi")
-    async def topi(ctx):
-        """Command to display the top characters globally with images."""
-        if not cards:
-            await ctx.send('No cards available.')
-            return
-
-        sorted_cards = sorted(cards, key=rank_sort_key)
-        paginator = GlobalPaginator(ctx, sorted_cards, user_data)
-        await paginator.send_initial_message()
-
-    @bot.tree.command(name="topi", description="Display the top characters globally with images")
-    async def topi_app(interaction: discord.Interaction):
-        if not cards:
-            await interaction.response.send_message('No cards available.', ephemeral=True)
-            return
-
-        sorted_cards = sorted(cards, key=rank_sort_key)
-        paginator = GlobalPaginator(interaction, sorted_cards, user_data)
-        await paginator.send_initial_message()
 
     @bot.command(name="im")
     async def im(ctx, name: str):
