@@ -82,6 +82,50 @@ def setup_commands(bot, cards, user_collections, user_data):
         save_data(cards, user_collections, user_data)
         await ctx.send(f'Character {name} added successfully!')
 
+    @bot.command(name="divorce")
+    async def divorce(ctx, *, character_name: str):
+        """Command to unclaim a character in exchange for its value."""
+        user_id = str(ctx.author.id)
+        card = next((c for c in user_collections.get(user_id, []) if c['name'].lower() == character_name.lower()), None)
+
+        if not card:
+            await ctx.send('Character not found in your collection.')
+            return
+
+        if card['claimed_by'] != user_id:
+            await ctx.send('You do not own this character.')
+            return
+
+        user_collections[user_id].remove(card)
+        card['claimed_by'] = None
+        user_data[user_id]['coins'] = user_data.get(user_id, {}).get('coins', 0) + card['value']
+        
+        save_data(cards, user_collections, user_data)
+        await ctx.send(f'You have successfully divorced {character_name} and received {card["value"]} coins.')
+
+    @bot.tree.command(name="divorce", description="Unclaim a character in exchange for its value")
+    @app_commands.describe(character_name="Character name")
+    async def divorce_app(interaction: discord.Interaction, character_name: str):
+        """Slash command to unclaim a character in exchange for its value."""
+        user_id = str(interaction.user.id)
+        card = next((c for c in user_collections.get(user_id, []) if c['name'].lower() == character_name.lower()), None)
+
+        if not card:
+            await interaction.response.send_message('Character not found in your collection.', ephemeral=True)
+            return
+
+        if card['claimed_by'] != user_id:
+            await interaction.response.send_message('You do not own this character.', ephemeral=True)
+            return
+
+        user_collections[user_id].remove(card)
+        card['claimed_by'] = None
+        user_data[user_id]['coins'] = user_data.get(user_id, {}).get('coins', 0) + card['value']
+        
+        save_data(cards, user_collections, user_data)
+        await interaction.response.send_message(f'You have successfully divorced {character_name} and received {card["value"]} coins.', ephemeral=True)
+
+
     @bot.command(name="roll")
     @commands.cooldown(max_rolls_per_hour, 3600, commands.BucketType.user)
     async def roll(ctx):
