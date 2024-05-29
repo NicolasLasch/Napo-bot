@@ -147,7 +147,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         bucket = roll_cooldown.get_bucket(ctx.message)
         success, retry_after = get_cooldown(bucket)
         if not success:
-            await ctx.send(f'You have to wait {int(retry_after // 60)} minutes and {int(retry_after % 60)} seconds before being able to roll again.')
+            await ctx.send(f'You have to wait **{int(retry_after // 60)}** minutes and **{int(retry_after % 60)}** seconds before being able to roll again.')
             return
 
         card = roll_card(user_id)
@@ -381,7 +381,6 @@ def setup_commands(bot, cards, user_collections, user_data):
             await ctx.send(f'{user.display_name} does not have the card {trade_card_name}.')
             return
 
-        # Perform the trade
         user_collections[sender_id].remove(sender_card)
         user_collections[receiver_id].remove(receiver_card)
         user_collections[sender_id].append(receiver_card)
@@ -426,8 +425,8 @@ def setup_commands(bot, cards, user_collections, user_data):
         user_collections[sender_id].append(receiver_card)
         user_collections[receiver_id].append(sender_card)
 
-        sender_card['claimed_by'] = user.id
-        receiver_card['claimed_by'] = sender.id
+        sender_card['claimed_by'] = receiver_id
+        receiver_card['claimed_by'] = sender_id
 
         save_data(cards, user_collections, user_data)
         await interaction.response.send_message(f'Trade successful! {sender.display_name} traded {card_name} with {user.display_name} for {trade_card_name}.', ephemeral=True)
