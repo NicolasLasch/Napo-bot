@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
 import random
 import asyncio
@@ -130,17 +130,25 @@ def setup_commands(bot, cards, user_collections, user_data):
         save_data(cards, user_collections, user_data)
         await interaction.response.send_message(f'You have successfully divorced {character_name} and received {card["value"]} coins.', ephemeral=True)
 
+    roll_cooldown = commands.CooldownMapping.from_cooldown(5, 3600, commands.BucketType.user)
+
+    def get_cooldown(bucket):
+        retry_after = bucket.update_rate_limit()
+        if retry_after:
+            return False, retry_after
+        return True, None
 
     @bot.command(name="roll")
-    @commands.cooldown(max_rolls_per_hour, 3600, commands.BucketType.user)
+    @commands.cooldown(5, 3600, commands.BucketType.user)
     async def roll(ctx):
         """Command to roll a random card."""
         user_id = str(ctx.author.id)
         now = datetime.utcnow()
 
-        if user_id in roll_cooldowns and now < roll_cooldowns[user_id]:
-            remaining_time = roll_cooldowns[user_id] - now
-            await ctx.send(f'You have to wait {remaining_time.seconds // 60} minutes before being able to roll again.')
+        bucket = roll_cooldown.get_bucket(ctx.message)
+        retry_after = bucket.update_rate_limit()
+        if retry_after:
+            await ctx.send(f'You have to wait {retry_after:.2f} seconds before being able to roll again.')
             return
 
         card = roll_card(user_id)
@@ -167,17 +175,16 @@ def setup_commands(bot, cards, user_collections, user_data):
         await asyncio.sleep(45)
         await message.edit(content="Time to claim the character has expired.", view=None)
 
-        roll_cooldowns[user_id] = now + timedelta(seconds=3600)
-
     @bot.tree.command(name="roll", description="Roll a random character card")
     async def roll_app(interaction: discord.Interaction):
-        """Command to roll a random card."""
+        """Slash command to roll a random card."""
         user_id = str(interaction.user.id)
         now = datetime.utcnow()
 
-        if user_id in roll_cooldowns and now < roll_cooldowns[user_id]:
-            remaining_time = roll_cooldowns[user_id] - now
-            await interaction.response.send_message(f'You have to wait {remaining_time.seconds // 60} minutes before being able to roll again.', ephemeral=True)
+        bucket = roll_cooldown.get_bucket(interaction.user)
+        success, retry_after = get_cooldown(bucket)
+        if not success:
+            await interaction.response.send_message(f'You have to wait {retry_after:.2f} seconds before being able to roll again.', ephemeral=True)
             return
 
         card = roll_card(user_id)
@@ -200,11 +207,11 @@ def setup_commands(bot, cards, user_collections, user_data):
             embed.color = discord.Color.orange()
             view.add_item(ClaimButton(card, user_data, user_collections, cards))
 
-        message = await interaction.response.send_message(embed=embed, view=view)
+        await interaction.response.send_message(embed=embed, view=view)
+        message = await interaction.original_response()
         await asyncio.sleep(45)
         await message.edit(content="Time to claim the character has expired.", view=None)
 
-        roll_cooldowns[user_id] = now + timedelta(seconds=3600)
 
     @bot.command(name="mm")
     async def mm(ctx):
