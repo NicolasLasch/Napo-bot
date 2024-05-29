@@ -17,7 +17,7 @@ class ClaimButton(discord.ui.Button):
             self.user_data.setdefault(user_id, {})['last_claim_time'] = str(datetime.utcnow() - timedelta(hours=4))
 
         last_claim_time = datetime.fromisoformat(self.user_data[user_id]['last_claim_time'])
-        if datetime.utcnow()         - last_claim_time < timedelta(hours=3):
+        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
             remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
             await interaction.response.send_message(f"You can only claim once every 3 hours. Please wait **{remaining_time}**.", ephemeral=True)
             return
@@ -36,7 +36,7 @@ class ClaimButton(discord.ui.Button):
             embed.add_field(name="Rank", value=self.card['rank'])
             embed.add_field(name="Value", value=f"{self.card['value']} 💎")
             embed.add_field(name="Claimed", value=f"Claimed by <@{user_id}>")
-            embed.set_image(url=self.card['image_url'].replace('.png', 'm.png').replace('.jpg', 'm.jpg'))
+            embed.set_image(url=self.card['image_url'])
             await interaction.message.edit(embed=embed, view=None)
 
         save_data(self.cards, self.user_collections, self.user_data)
@@ -85,7 +85,7 @@ class Paginator(discord.ui.View):
         embed = discord.Embed(title=card["name"], description=card["description"])
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
-        embed.set_image(url=card["image_url"].replace('.png', 'm.png').replace('.jpg', 'm.jpg'))
+        embed.set_image(url=card["image_url"])
         embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
@@ -120,7 +120,7 @@ class GlobalPaginator(discord.ui.View):
         embed = discord.Embed(title=card["name"], description=card["description"])
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
-        embed.set_image(url=card["image_url"].replace('.png', 'm.png').replace('.jpg', 'm.jpg'))
+        embed.set_image(url=card["image_url"])
         embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
