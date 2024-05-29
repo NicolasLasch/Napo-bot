@@ -25,6 +25,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         save_data(cards, user_collections, user_data)
         await ctx.send(f'Character {name} added successfully!')
 
+    
     @bot.command(name="roll")
     @commands.cooldown(5, 3600, commands.BucketType.user)
     async def roll(ctx):
@@ -47,7 +48,7 @@ def setup_commands(bot, cards, user_collections, user_data):
             view.add_item(GemButton(card, user_data, user_collections))
         else:
             embed.color = discord.Color.orange()
-            view.add_item(ClaimButton(card, user_data, user_collections))
+            view.add_item(ClaimButton(card, user_data, user_collections, cards))
 
         message = await ctx.send(embed=embed, view=view)
         await asyncio.sleep(45)
@@ -74,7 +75,7 @@ def setup_commands(bot, cards, user_collections, user_data):
             view.add_item(GemButton(card, user_data, user_collections))
         else:
             embed.color = discord.Color.orange()
-            view.add_item(ClaimButton(card, user_data, user_collections))
+            view.add_item(ClaimButton(card, user_data, user_collections, cards))
 
         message = await interaction.response.send_message(embed=embed, view=view)
         await asyncio.sleep(45)
