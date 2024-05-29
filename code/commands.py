@@ -346,6 +346,27 @@ def setup_commands(bot, cards, user_collections, user_data):
         save_data(cards, user_collections, user_data)
         await interaction.response.send_message("Your luck percentages have been increased!", ephemeral=True)
 
+    @bot.command(name="balance")
+    async def balance(ctx):
+        """Command to display the user's current balance."""
+        user_id = str(ctx.author.id)
+        if user_id not in user_data:
+            user_data[user_id] = {'coins': 0}
+
+        coins = user_data[user_id].get('coins', 0)
+        await ctx.send(f'You have {coins} coins.')
+
+    @bot.tree.command(name="balance", description="Display your current balance")
+    async def balance_app(interaction: discord.Interaction):
+        """Slash command to display the user's current balance."""
+        user_id = str(interaction.user.id)
+        if user_id not in user_data:
+            user_data[user_id] = {'coins': 0}
+
+        coins = user_data[user_id].get('coins', 0)
+        await interaction.response.send_message(f'You have {coins} coins.', ephemeral=True)
+
+
     @bot.command(name="download_data")
     async def download_data(ctx):
         """Command to download the JSON files."""
@@ -381,3 +402,5 @@ def setup_commands(bot, cards, user_collections, user_data):
         global cards, user_collections, user_data
         cards, user_collections, user_data = load_data()
         await interaction.response.send_message("Data uploaded and loaded successfully!", ephemeral=True)
+
+setup_commands(bot, cards, user_collections, user_data)
