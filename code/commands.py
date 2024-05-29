@@ -80,7 +80,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         message = await interaction.response.send_message(embed=embed, view=view)
         await asyncio.sleep(45)
         await message.edit(content="Time to claim the character has expired.", view=None)
-        
+
     @bot.command(name="balance")
     async def balance(ctx):
         user_id = str(ctx.author.id)
