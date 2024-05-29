@@ -139,15 +139,14 @@ def setup_commands(bot, cards, user_collections, user_data):
         await interaction.response.send_message(f'You have successfully divorced {character_name} and received {card["value"]} coins.', ephemeral=True)
 
     @bot.command(name="roll")
-    @commands.cooldown(5, 3600, commands.BucketType.user)
     async def roll(ctx):
         """Command to roll a random card."""
         user_id = str(ctx.author.id)
         now = datetime.utcnow()
 
         bucket = roll_cooldown.get_bucket(ctx.message)
-        retry_after = bucket.update_rate_limit()
-        if retry_after:
+        success, retry_after = get_cooldown(bucket)
+        if not success:
             await ctx.send(f'You have to wait {int(retry_after // 60)} minutes and {int(retry_after % 60)} seconds before being able to roll again.')
             return
 
@@ -174,44 +173,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         message = await ctx.send(embed=embed, view=view)
         await asyncio.sleep(45)
         await message.edit(content="Time to claim the character has expired.", view=None)
-
-    @bot.tree.command(name="roll", description="Roll a random character card")
-    async def roll_app(interaction: discord.Interaction):
-        """Slash command to roll a random card."""
-        user_id = str(interaction.user.id)
-        now = datetime.utcnow()
-
-        bucket = roll_cooldown.get_bucket(interaction.user)
-        success, retry_after = get_cooldown(bucket)
-        if not success:
-            await interaction.response.send_message(f'You have to wait {int(retry_after // 60)} minutes and {int(retry_after % 60)} seconds before being able to roll again.', ephemeral=True)
-            return
-
-        card = roll_card(user_id)
-        if not card:
-            await interaction.response.send_message('No cards available for the current probability distribution.', ephemeral=True)
-            return
-
-        embed = discord.Embed(title=card['name'], description=card['description'])
-        embed.add_field(name="Rank", value=card['rank'])
-        embed.add_field(name="Value", value=f"{card['value']} 💎")
-        claimed_by = f"Claimed: None" if not card['claimed_by'] else f"Claimed: <@{card['claimed_by']}>"
-        embed.add_field(name="Claimed", value=claimed_by)
-        embed.set_image(url=card['image_urls'][0])
-
-        view = discord.ui.View()
-        if card['claimed_by']:
-            embed.color = discord.Color.red()
-            view.add_item(GemButton(card, user_data, user_collections, cards))
-        else:
-            embed.color = discord.Color.orange()
-            view.add_item(ClaimButton(card, user_data, user_collections, cards))
-
-        await interaction.response.send_message(embed=embed, view=view)
-        message = await interaction.original_response()
-        await asyncio.sleep(45)
-        await message.edit(content="Time to claim the character has expired.", view=None)
-
+        
     @bot.command(name="mm")
     async def mm(ctx):
         """Command to display the user's collection."""
