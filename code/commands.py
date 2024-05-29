@@ -40,8 +40,24 @@ def setup_commands(bot, cards, user_collections, user_data):
     def roll_card(user_id):
         probabilities = get_user_probabilities(user_id)
         ranks = list(probabilities.keys())
-        chances = list(probabilities.values())
-        rank = random.choices(ranks, chances)[0]
+        rank_probabilities = []
+
+        # Adjust probabilities based on the available cards
+        for rank in ranks:
+            rank_count = sum(1 for card in cards if card['rank'] == rank)
+            if rank_count == 0:
+                rank_probabilities.append(0)
+            else:
+                rank_probabilities.append(probabilities[rank])
+
+        total_prob = sum(rank_probabilities)
+        if total_prob == 0:
+            return None
+
+        # Normalize probabilities
+        rank_probabilities = [prob / total_prob for prob in rank_probabilities]
+        rank = random.choices(ranks, rank_probabilities)[0]
+
         possible_cards = [card for card in cards if card['rank'] == rank]
         return random.choice(possible_cards)
 
@@ -77,6 +93,9 @@ def setup_commands(bot, cards, user_collections, user_data):
             return
 
         card = roll_card(user_id)
+        if not card:
+            await ctx.send('No cards available for the current probability distribution.')
+            return
 
         embed = discord.Embed(title=card['name'], description=card['description'])
         embed.add_field(name="Rank", value=card['rank'])
@@ -111,6 +130,9 @@ def setup_commands(bot, cards, user_collections, user_data):
             return
 
         card = roll_card(user_id)
+        if not card:
+            await interaction.response.send_message('No cards available for the current probability distribution.', ephemeral=True)
+            return
 
         embed = discord.Embed(title=card['name'], description=card['description'])
         embed.add_field(name="Rank", value=card['rank'])
