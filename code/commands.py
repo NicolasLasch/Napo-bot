@@ -4,7 +4,7 @@ from discord import app_commands
 import random
 import asyncio
 from datetime import datetime, timedelta
-from utils import save_data, rank_sort_key
+from utils import save_data, load_data, rank_sort_key
 from views import ClaimButton, GemButton, Paginator, GlobalPaginator
 
 # Define global variables for tracking rolls
@@ -132,6 +132,54 @@ def setup_commands(bot, cards, user_collections, user_data):
         await message.edit(content="Time to claim the character has expired.", view=None)
 
         roll_cooldowns[user_id] = now + timedelta(seconds=3600)
+
+    @bot.command(name="mm")
+    async def mm(ctx):
+        """Command to display the user's collection."""
+        user_id = str(ctx.author.id)
+        if user_id not in user_collections or not user_collections[user_id]:
+            await ctx.send('You have no cards in your collection.')
+            return
+
+        collection = user_collections[user_id]
+        collection_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in collection[:10]])
+        embed = discord.Embed(title="Your Collection", description=collection_list)
+        await ctx.send(embed=embed)
+
+    @bot.tree.command(name="mm", description="Display your card collection")
+    async def mm_app(interaction: discord.Interaction):
+        user_id = str(interaction.user.id)
+        if user_id not in user_collections or not user_collections[user_id]:
+            await interaction.response.send_message('You have no cards in your collection.', ephemeral=True)
+            return
+
+        collection = user_collections[user_id]
+        collection_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in collection[:10]])
+        embed = discord.Embed(title="Your Collection", description=collection_list)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @bot.command(name="top")
+    async def top(ctx):
+        """Command to display the top characters globally."""
+        if not cards:
+            await ctx.send('No cards available.')
+            return
+
+        sorted_cards = sorted(cards, key=rank_sort_key)
+        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in sorted_cards[:10]])
+        embed = discord.Embed(title="Top Characters", description=top_list)
+        await ctx.send(embed=embed)
+
+    @bot.tree.command(name="top", description="Display the top characters globally")
+    async def top_app(interaction: discord.Interaction):
+        if not cards:
+            await interaction.response.send_message('No cards available.', ephemeral=True)
+            return
+
+        sorted_cards = sorted(cards, key=rank_sort_key)
+        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in sorted_cards[:10]])
+        embed = discord.Embed(title="Top Characters", description=top_list)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @bot.command(name="mmi")
     async def mmi(ctx):
@@ -275,3 +323,39 @@ def setup_commands(bot, cards, user_collections, user_data):
 
         save_data(cards, user_collections, user_data)
         await interaction.response.send_message("Your luck percentages have been increased!", ephemeral=True)
+
+    @bot.command(name="download_data")
+    async def download_data(ctx):
+        """Command to download the JSON files."""
+        await ctx.send(file=discord.File('cards.json'))
+        await ctx.send(file=discord.File('collections.json'))
+        await ctx.send(file=discord.File('user_data.json'))
+
+    @bot.tree.command(name="download_data", description="Download the current data as JSON files")
+    async def download_data_app(interaction: discord.Interaction):
+        """Slash command to download the JSON files."""
+        await interaction.response.send_message("Downloading data...", ephemeral=True)
+        await interaction.followup.send(file=discord.File('cards.json'))
+        await interaction.followup.send(file=discord.File('collections.json'))
+        await interaction.followup.send(file=discord.File('user_data.json'))
+
+    @bot.command(name="upload_data")
+    async def upload_data(ctx, cards_file: discord.Attachment, collections_file: discord.Attachment, user_data_file: discord.Attachment):
+        """Command to upload the JSON files."""
+        await cards_file.save('cards.json')
+        await collections_file.save('collections.json')
+        await user_data_file.save('user_data.json')
+        global cards, user_collections, user_data
+        cards, user_collections, user_data = load_data()
+        await ctx.send("Data uploaded and loaded successfully!")
+
+    @bot.tree.command(name="upload_data", description="Upload the current data as JSON files")
+    @app_commands.describe(cards_file="The cards JSON file", collections_file="The collections JSON file", user_data_file="The user data JSON file")
+    async def upload_data_app(interaction: discord.Interaction, cards_file: discord.Attachment, collections_file: discord.Attachment, user_data_file: discord.Attachment):
+        """Slash command to upload the JSON files."""
+        await cards_file.save('cards.json')
+        await collections_file.save('collections.json')
+        await user_data_file.save('user_data.json')
+        global cards, user_collections, user_data
+        cards, user_collections, user_data = load_data()
+        await interaction.response.send_message("Data uploaded and loaded successfully!", ephemeral=True)

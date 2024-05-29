@@ -1,9 +1,8 @@
 import json
 
-# Paths to JSON files
 CARDS_FILE = 'cards.json'
 COLLECTIONS_FILE = 'collections.json'
-USER_DATA_FILE = 'userdata.json'
+USER_DATA_FILE = 'user_data.json'
 
 def load_data():
     try:
@@ -37,5 +36,5 @@ def save_data(cards, user_collections, user_data):
         json.dump(user_data, f, indent=4)
 
 def rank_sort_key(card):
-    rank_order = {'SS': 1, 'S': 2, 'A': 3, 'B': 4, 'C': 5, 'D': 6, 'E': 7}
-    return rank_order.get(card['rank'], 8)
+    rank_order = {'SS': 0, 'S': 1, 'A': 2, 'B': 3, 'C': 4, 'D': 5, 'E': 6}
+    return rank_order.get(card['rank'], 7)
