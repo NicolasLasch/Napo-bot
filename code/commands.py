@@ -37,7 +37,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         card = random.choice(cards)
         user_id = str(ctx.author.id)
 
-        claimed_by = f"Claimed: None" if not card['claimed_by'] else f"Claimed: <@{card['claimed_by']}>"
+        claimed_by = f"None" if not card['claimed_by'] else f"<@{card['claimed_by']}>"
 
         embed = discord.Embed(title=card['name'], description=card['description'])
         embed.add_field(name="Rank", value=card['rank'])
@@ -67,7 +67,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         card = random.choice(cards)
         user_id = str(interaction.user.id)
 
-        claimed_by = f"Claimed: None" if not card['claimed_by'] else f"Claimed: <@{card['claimed_by']}>"
+        claimed_by = f"None" if not card['claimed_by'] else f"<@{card['claimed_by']}>"
 
         embed = discord.Embed(title=card['name'], description=card['description'])
         embed.add_field(name="Rank", value=card['rank'])
@@ -275,8 +275,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         if not card:
             await ctx.send('Card not found.')
             return
-
-        claimed_status = "Not claimed" if not card["claimed_by"] else f'Claimed by <@{card["claimed_by"]}>'
+        claimed_status = "Not claimed" if not card["claimed_by"] else f'<@{card["claimed_by"]}>'
         embed = discord.Embed(title=card["name"], description=card["description"])
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
@@ -292,7 +291,7 @@ def setup_commands(bot, cards, user_collections, user_data):
             await interaction.response.send_message('Card not found.', ephemeral=True)
             return
 
-        claimed_status = "Not claimed" if not card["claimed_by"] else f'Claimed by <@{card["claimed_by"]}>'
+        claimed_status = "Not claimed" if not card["claimed_by"] else f'<@{card["claimed_by"]}>'
         embed = discord.Embed(title=card["name"], description=card["description"])
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
