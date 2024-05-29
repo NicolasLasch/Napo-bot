@@ -16,7 +16,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         card = {'name': name, 'value': value, 'rank': rank, 'description': description, 'image_url': image_url, 'claimed_by': None}
         cards.append(card)
         save_data(cards, user_collections, user_data)
-        await interaction.response.send_message(f'Character {name} added successfully!', ephemeral=True)
+        await interaction.response.send_message(f'Character {name} added successfully!', ephemeral=True)  # Await needed to send response to interaction
 
     @bot.command(name="add_character")
     async def add_character_cmd(ctx, name: str, value: int, rank: str, description: str, image_url: str):
@@ -24,7 +24,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         card = {'name': name, 'value': value, 'rank': rank, 'description': description, 'image_url': image_url, 'claimed_by': None}
         cards.append(card)
         save_data(cards, user_collections, user_data)
-        await ctx.send(f'Character {name} added successfully!')
+        await ctx.send(f'Character {name} added successfully!')  # Await needed to send message to channel
 
     @bot.command(name="roll")
     @commands.cooldown(5, 3600, commands.BucketType.user)
@@ -50,9 +50,9 @@ def setup_commands(bot, cards, user_collections, user_data):
             embed.color = discord.Color.orange()
             view.add_item(ClaimButton(card, user_data, user_collections, cards))
 
-        message = await ctx.send(embed=embed, view=view)
-        await asyncio.sleep(45)
-        await message.edit(content="Time to claim the character has expired.", view=None)
+        message = await ctx.send(embed=embed, view=view)  # Await needed to send message with embed and view
+        await asyncio.sleep(45)  # Await needed to sleep asynchronously
+        await message.edit(content="Time to claim the character has expired.", view=None)  # Await needed to edit message
 
     @bot.tree.command(name="roll", description="Roll a random character card")
     async def roll_app(interaction: discord.Interaction):
@@ -77,10 +77,41 @@ def setup_commands(bot, cards, user_collections, user_data):
             embed.color = discord.Color.orange()
             view.add_item(ClaimButton(card, user_data, user_collections, cards))
 
-        message = await interaction.response.send_message(embed=embed, view=view)
-        await asyncio.sleep(45)
-        await message.edit(content="Time to claim the character has expired.", view=None)
+        message = await interaction.response.send_message(embed=embed, view=view)  # Await needed to send response to interaction with embed and view
+        await asyncio.sleep(45)  # Await needed to sleep asynchronously
+        await message.edit(content="Time to claim the character has expired.", view=None)  # Await needed to edit message
 
+    @bot.command(name="mmi")
+    async def mmi(ctx):
+        """Command to display the user's collection with images."""
+        user = ctx.message.author
+        if str(user.id) not in user_collections or not user_collections[str(user.id)]:
+            await ctx.send('You have no cards in your collection.')
+            return
+
+        collection = [card for card in user_collections[str(user.id)] if card['claimed_by'] == str(user.id)]
+        if not collection:
+            await ctx.send('You have no claimed cards in your collection.')
+            return
+
+        paginator = Paginator(collection)
+        await paginator.send_initial_message(ctx)
+
+    @bot.tree.command(name="mmi", description="Display your claimed cards with images")
+    async def mmi_app(interaction: discord.Interaction):
+        user_id = str(interaction.user.id)
+        if str(user_id) not in user_collections or not user_collections[str(user_id)]:
+            await interaction.response.send_message('You have no cards in your collection.', ephemeral=True)
+            return
+
+        collection = [card for card in user_collections[str(user_id)] if card['claimed_by'] == str(user_id)]
+        if not collection:
+            await interaction.response.send_message('You have no claimed cards in your collection.', ephemeral=True)
+            return
+
+        paginator = Paginator(collection)
+        await paginator.send_initial_message(interaction)
+        
     @bot.command(name="balance")
     async def balance(ctx):
         user_id = str(ctx.author.id)
@@ -120,37 +151,6 @@ def setup_commands(bot, cards, user_collections, user_data):
         user_data[user_id]['luck'] += 1
         save_data(cards, user_collections, user_data)
         await interaction.response.send_message("You have purchased more luck for 500 coins!", ephemeral=True)
-
-    @bot.command(name="mmi")
-    async def mmi(ctx):
-        """Command to display the user's collection with images."""
-        user = ctx.message.author
-        if str(user.id) not in user_collections or not user_collections[str(user.id)]:
-            await ctx.send('You have no cards in your collection.')
-            return
-
-        collection = [card for card in user_collections[str(user.id)] if card['claimed_by'] == str(user.id)]
-        if not collection:
-            await ctx.send('You have no claimed cards in your collection.')
-            return
-
-        paginator = Paginator(ctx, collection, user_data)
-        await paginator.send_initial_message()
-
-    @bot.tree.command(name="mmi", description="Display your claimed cards with images")
-    async def mmi_app(interaction: discord.Interaction):
-        user_id = str(interaction.user.id)
-        if str(user_id) not in user_collections or not user_collections[str(user_id)]:
-            await interaction.response.send_message('You have no cards in your collection.', ephemeral=True)
-            return
-
-        collection = [card for card in user_collections[str(user_id)] if card['claimed_by'] == str(user_id)]
-        if not collection:
-            await interaction.response.send_message('You have no claimed cards in your collection.', ephemeral=True)
-            return
-
-        paginator = Paginator(interaction, collection, user_data)
-        await paginator.send_initial_message()
 
     @bot.command(name="mm")
     async def mm(ctx, page: int = 1):

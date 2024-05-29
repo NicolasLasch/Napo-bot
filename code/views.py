@@ -67,16 +67,10 @@ class GemButton(discord.ui.Button):
         await interaction.response.send_message(f"You received {self.card['value']} coins from the gem!", ephemeral=True)
 
 class Paginator(discord.ui.View):
-    def __init__(self, ctx, collection, user_data):
+    def __init__(self, collection):
         super().__init__(timeout=60)
-        self.ctx = ctx
         self.collection = collection
-        self.user_data = user_data
         self.current_page = 0
-
-    async def send_initial_message(self):
-        embed = self.create_embed()
-        await self.ctx.send(embed=embed, view=self)
 
     def create_embed(self):
         card = self.collection[self.current_page]
@@ -93,26 +87,20 @@ class Paginator(discord.ui.View):
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.response.edit_message(embed=embed, view=self)  # Await needed to edit message
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
     async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         if self.current_page < len(self.collection) - 1:
             self.current_page += 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.response.edit_message(embed=embed, view=self)  # Await needed to edit message
 
 class GlobalPaginator(discord.ui.View):
-    def __init__(self, ctx, collection, user_data):
+    def __init__(self, collection):
         super().__init__(timeout=60)
-        self.ctx = ctx
         self.collection = collection
-        self.user_data = user_data
         self.current_page = 0
-
-    async def send_initial_message(self):
-        embed = self.create_embed()
-        await self.ctx.send(embed=embed, view=self)
 
     def create_embed(self):
         card = self.collection[self.current_page]
@@ -129,11 +117,11 @@ class GlobalPaginator(discord.ui.View):
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.response.edit_message(embed=embed, view=self)  # Await needed to edit message
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
     async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         if self.current_page < len(self.collection) - 1:
             self.current_page += 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.response.edit_message(embed=embed, view=self)  # Await needed to edit message
