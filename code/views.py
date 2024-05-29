@@ -136,3 +136,40 @@ class GlobalPaginator(discord.ui.View):
         self.current_page = (self.current_page + 1) % len(self.collection)
         embed = self.create_embed()
         await interaction.response.edit_message(embed=embed, view=self)
+
+class ImagePaginator(discord.ui.View):
+    def __init__(self, card):
+        super().__init__(timeout=60)
+        self.card = card
+        self.current_image = 0
+
+    async def send_initial_message(self, ctx_or_interaction):
+        embed = self.create_embed()
+        if isinstance(ctx_or_interaction, commands.Context):
+            await ctx_or_interaction.send(embed=embed, view=self)
+        else:
+            await ctx_or_interaction.response.send_message(embed=embed, view=self)
+
+    def create_embed(self):
+        image_url = self.card["image_urls"][self.current_image]
+        embed = discord.Embed(title=self.card["name"], description=self.card["description"])
+        embed.add_field(name="Rank", value=self.card["rank"])
+        embed.add_field(name="Value", value=f'{self.card["value"]} 💎')
+        claimed_by = "Not claimed" if not self.card["claimed_by"] else f'Claimed by <@{self.card["claimed_by"]}>'
+        embed.add_field(name="Claimed", value=claimed_by)
+        embed.set_image(url=image_url)
+        embed.set_footer(text=f'{self.current_image + 1}/{len(self.card["image_urls"])}')
+        embed.color = discord.Color.red() if self.card['claimed_by'] else discord.Color.orange()
+        return embed
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
+    async def previous_image(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_image = (self.current_image - 1) % len(self.card["image_urls"])
+        embed = self.create_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
+    async def next_image(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_image = (self.current_image + 1) % len(self.card["image_urls"])
+        embed = self.create_embed()
+        await interaction.response.edit_message(embed=embed, view=self)

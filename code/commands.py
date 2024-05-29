@@ -255,38 +255,60 @@ def setup_commands(bot, cards, user_collections, user_data):
         paginator = GlobalPaginator(sorted_cards)
         await paginator.send_initial_message(interaction)
 
+
     @bot.command(name="im")
     async def im(ctx, name: str):
-        """Command to display detailed information about a card."""
+        """Command to display detailed information about a card with image navigation."""
         card = next((c for c in cards if c['name'].lower() == name.lower()), None)
         if not card:
             await ctx.send('Card not found.')
             return
 
-        claimed_status = "Not claimed" if not card["claimed_by"] else f'Claimed by <@{card["claimed_by"]}>'
-        embed = discord.Embed(title=card["name"], description=card["description"])
-        embed.add_field(name="Rank", value=card["rank"])
-        embed.add_field(name="Value", value=card["value"])
-        embed.add_field(name="Claimed", value=claimed_status)
-        embed.set_image(url=card["image_urls"][0])
-        embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
-        await ctx.send(embed=embed)
+        paginator = ImagePaginator(card)
+        await paginator.send_initial_message(ctx)
 
-    @bot.tree.command(name="im", description="Display detailed information about a card")
+    @bot.tree.command(name="im", description="Display detailed information about a card with image navigation")
+    @app_commands.describe(name="Character name")
     async def im_app(interaction: discord.Interaction, name: str):
         card = next((c for c in cards if c['name'].lower() == name.lower()), None)
         if not card:
             await interaction.response.send_message('Card not found.', ephemeral=True)
             return
 
-        claimed_status = "Not claimed" if not card["claimed_by"] else f'Claimed by <@{card["claimed_by"]}>'
-        embed = discord.Embed(title=card["name"], description=card["description"])
-        embed.add_field(name="Rank", value=card["rank"])
-        embed.add_field(name="Value", value=card["value"])
-        embed.add_field(name="Claimed", value=claimed_status)
-        embed.set_image(url=card["image_urls"][0])
-        embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        paginator = ImagePaginator(card)
+        await paginator.send_initial_message(interaction)
+
+    @bot.command(name="ai")
+    async def add_image(ctx, character_name: str, image_url: str):
+        """Command to add an image to an existing character."""
+        card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
+        if not card:
+            await ctx.send('Character not found.')
+            return
+
+        if 'image_urls' not in card:
+            card['image_urls'] = []
+
+        card['image_urls'].append(image_url)
+        save_data(cards, user_collections, user_data)
+        await ctx.send(f'Image added to character {character_name} successfully!')
+
+    @bot.tree.command(name="add_image", description="Add an image to an existing character")
+    @app_commands.describe(character_name="Character name", image_url="Image URL")
+    async def add_image_app(interaction: discord.Interaction, character_name: str, image_url: str):
+        """Slash command to add an image to an existing character."""
+        card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
+        if not card:
+            await interaction.response.send_message('Character not found.', ephemeral=True)
+            return
+
+        if 'image_urls' not in card:
+            card['image_urls'] = []
+
+        card['image_urls'].append(image_url)
+        save_data(cards, user_collections, user_data)
+        await interaction.response.send_message(f'Image added to character {character_name} successfully!', ephemeral=True)
+
 
     @bot.command(name="luck")
     async def luck(ctx):
