@@ -5,7 +5,7 @@ from utils import save_data
 
 class ClaimButton(discord.ui.Button):
     def __init__(self, card, user_data, user_collections, cards):
-        super().__init__(label="Claim", style=discord.ButtonStyle.primary)
+        super().__init__(label="Claim", style=discord.ButtonStyle.success)
         self.card = card
         self.user_data = user_data
         self.user_collections = user_collections
@@ -13,37 +13,36 @@ class ClaimButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
-        if 'last_claim_time' not in self.user_data.get(user_id, {}):
-            self.user_data.setdefault(user_id, {})['last_claim_time'] = str(datetime.utcnow() - timedelta(hours=4))
+        now = datetime.utcnow()
+        
+        if user_id not in self.user_data:
+            self.user_data[user_id] = {'coins': 0, 'luck_purchases': 0, 'last_claim_time': None}
 
-        last_claim_time = datetime.fromisoformat(self.user_data[user_id]['last_claim_time'])
-        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
-            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
-            await interaction.response.send_message(f"You can only claim once every 3 hours. Please wait **{remaining_time}**.", ephemeral=True)
+        last_claim_time = self.user_data[user_id].get('last_claim_time')
+        if last_claim_time and now - last_claim_time < timedelta(hours=3):
+            remaining_time = timedelta(hours=3) - (now - last_claim_time)
+            hours, remainder = divmod(remaining_time.seconds, 3600)
+            minutes, _ = divmod(remainder, 60)
+            await interaction.response.send_message(f"You can only claim once every 3 hours. Please wait **{hours}h {minutes}m**.", ephemeral=True)
             return
 
-        self.user_data[user_id]['last_claim_time'] = str(datetime.utcnow())
-
-        if self.card['claimed_by']:
-            await interaction.response.send_message(f"This card is already claimed by <@{self.card['claimed_by']}>. You receive 100 coins!", ephemeral=True)
-            self.user_data.setdefault(user_id, {}).setdefault('coins', 0)
-            self.user_data[user_id]['coins'] += 100
-        else:
-            self.card['claimed_by'] = user_id
-            self.user_collections.setdefault(user_id, []).append(self.card)
-            await interaction.response.send_message(f"You have claimed {self.card['name']}!", ephemeral=True)
-            embed = discord.Embed(title=self.card['name'], description=self.card['description'], color=discord.Color.red())
-            embed.add_field(name="Rank", value=self.card['rank'])
-            embed.add_field(name="Value", value=f"{self.card['value']} 💎")
-            embed.add_field(name="Claimed", value=f"Claimed by <@{user_id}>")
-            embed.set_image(url=self.card['image_urls'][0])
-            await interaction.message.edit(embed=embed, view=None)
-
+        self.card['claimed_by'] = user_id
+        if user_id not in self.user_collections:
+            self.user_collections[user_id] = []
+        self.user_collections[user_id].append(self.card)
+        self.user_data[user_id]['last_claim_time'] = now
+        
         save_data(self.cards, self.user_collections, self.user_data)
+        
+        embed = interaction.message.embeds[0]
+        embed.color = discord.Color.red()
+        embed.set_field_at(index=2, name="Claimed", value=f"Claimed: <@{user_id}>")
+        await interaction.response.edit_message(embed=embed, view=None)
+        await interaction.followup.send(f"You have claimed {self.card['name']}!", ephemeral=True)
 
 class GemButton(discord.ui.Button):
     def __init__(self, card, user_data, user_collections, cards):
-        super().__init__(label="💎", style=discord.ButtonStyle.secondary)
+        super().__init__(label="Claim Gems", style=discord.ButtonStyle.primary)
         self.card = card
         self.user_data = user_data
         self.user_collections = user_collections
@@ -51,21 +50,25 @@ class GemButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
-        if 'last_gem_time' not in self.user_data.get(user_id, {}):
-            self.user_data.setdefault(user_id, {})['last_gem_time'] = str(datetime.utcnow() - timedelta(hours=4))
+        now = datetime.utcnow()
+        
+        if user_id not in self.user_data:
+            self.user_data[user_id] = {'coins': 0, 'luck_purchases': 0, 'last_claim_time': None, 'last_gem_claim_time': None}
 
-        last_gem_time = datetime.fromisoformat(self.user_data[user_id]['last_gem_time'])
-        if datetime.utcnow() - last_gem_time < timedelta(hours=3):
-            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_gem_time)
-            await interaction.response.send_message(f"You can only collect gems once every 3 hours. Please wait **{remaining_time}**.", ephemeral=True)
+        last_gem_claim_time = self.user_data[user_id].get('last_gem_claim_time')
+        if last_gem_claim_time and now - last_gem_claim_time < timedelta(hours=3):
+            remaining_time = timedelta(hours=3) - (now - last_gem_claim_time)
+            hours, remainder = divmod(remaining_time.seconds, 3600)
+            minutes, _ = divmod(remainder, 60)
+            await interaction.response.send_message(f"You can only claim gems once every 3 hours. Please wait **{hours}h {minutes}m**.", ephemeral=True)
             return
 
-        self.user_data[user_id]['last_gem_time'] = str(datetime.utcnow())
-        self.user_data.setdefault(user_id, {}).setdefault('coins', 0)
         self.user_data[user_id]['coins'] += self.card['value']
+        self.user_data[user_id]['last_gem_claim_time'] = now
 
         save_data(self.cards, self.user_collections, self.user_data)
-        await interaction.response.send_message(f"You received {self.card['value']} coins from the gem!", ephemeral=True)
+        
+        await interaction.response.send_message(f"You have claimed {self.card['value']} gems!", ephemeral=True)
 
 class Paginator(discord.ui.View):
     def __init__(self, collection):

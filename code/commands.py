@@ -158,7 +158,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         embed = discord.Embed(title=card['name'], description=card['description'])
         embed.add_field(name="Rank", value=card['rank'])
         embed.add_field(name="Value", value=f"{card['value']} 💎")
-        claimed_by = f"Claimed: None" if not card['claimed_by'] else f"Claimed: <@{card['claimed_by']}>"
+        claimed_by = f"None" if not card['claimed_by'] else f"<@{card['claimed_by']}>"
         embed.add_field(name="Claimed", value=claimed_by)
         embed.set_image(url=card['image_urls'][0])
 
@@ -173,7 +173,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         message = await ctx.send(embed=embed, view=view)
         await asyncio.sleep(45)
         await message.edit(content="Time to claim the character has expired.", view=None)
-        
+
     @bot.command(name="mm")
     async def mm(ctx):
         """Command to display the user's collection."""
@@ -354,6 +354,83 @@ def setup_commands(bot, cards, user_collections, user_data):
 
         coins = user_data[user_id].get('coins', 0)
         await interaction.response.send_message(f'You have {coins} coins.', ephemeral=True)
+
+    @bot.command(name="trade")
+    async def trade(ctx, user: discord.User, card_name: str, trade_card_name: str):
+        """Command to trade cards with another user."""
+        sender = ctx.message.author
+        sender_id = str(sender.id)
+        receiver_id = str(user.id)
+
+        if sender_id not in user_collections or not user_collections[sender_id]:
+            await ctx.send('You have no cards to trade.')
+            return
+
+        if receiver_id not in user_collections or not user_collections[receiver_id]:
+            await ctx.send(f'{user.display_name} has no cards to trade.')
+            return
+
+        sender_card = next((c for c in user_collections[sender_id] if c['name'].lower() == card_name.lower()), None)
+        receiver_card = next((c for c in user_collections[receiver_id] if c['name'].lower() == trade_card_name.lower()), None)
+
+        if not sender_card:
+            await ctx.send(f'You do not have the card {card_name}.')
+            return
+
+        if not receiver_card:
+            await ctx.send(f'{user.display_name} does not have the card {trade_card_name}.')
+            return
+
+        # Perform the trade
+        user_collections[sender_id].remove(sender_card)
+        user_collections[receiver_id].remove(receiver_card)
+        user_collections[sender_id].append(receiver_card)
+        user_collections[receiver_id].append(sender_card)
+
+        sender_card['claimed_by'] = user.id
+        receiver_card['claimed_by'] = sender.id
+
+        save_data(cards, user_collections, user_data)
+        await ctx.send(f'Trade successful! {sender.display_name} traded {card_name} with {user.display_name} for {trade_card_name}.')
+
+    @bot.tree.command(name="trade", description="Trade cards with another user")
+    @app_commands.describe(user="User to trade with", card_name="Your card name", trade_card_name="Their card name")
+    async def trade_app(interaction: discord.Interaction, user: discord.User, card_name: str, trade_card_name: str):
+        """Slash command to trade cards with another user."""
+        sender = interaction.user
+        sender_id = str(sender.id)
+        receiver_id = str(user.id)
+
+        if sender_id not in user_collections or not user_collections[sender_id]:
+            await interaction.response.send_message('You have no cards to trade.', ephemeral=True)
+            return
+
+        if receiver_id not in user_collections or not user_collections[receiver_id]:
+            await interaction.response.send_message(f'{user.display_name} has no cards to trade.', ephemeral=True)
+            return
+
+        sender_card = next((c for c in user_collections[sender_id] if c['name'].lower() == card_name.lower()), None)
+        receiver_card = next((c for c in user_collections[receiver_id] if c['name'].lower() == trade_card_name.lower()), None)
+
+        if not sender_card:
+            await interaction.response.send_message(f'You do not have the card {card_name}.', ephemeral=True)
+            return
+
+        if not receiver_card:
+            await interaction.response.send_message(f'{user.display_name} does not have the card {trade_card_name}.', ephemeral=True)
+            return
+
+        # Perform the trade
+        user_collections[sender_id].remove(sender_card)
+        user_collections[receiver_id].remove(receiver_card)
+        user_collections[sender_id].append(receiver_card)
+        user_collections[receiver_id].append(sender_card)
+
+        sender_card['claimed_by'] = user.id
+        receiver_card['claimed_by'] = sender.id
+
+        save_data(cards, user_collections, user_data)
+        await interaction.response.send_message(f'Trade successful! {sender.display_name} traded {card_name} with {user.display_name} for {trade_card_name}.', ephemeral=True)
 
 
     @bot.command(name="luck")
