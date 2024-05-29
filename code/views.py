@@ -95,14 +95,14 @@ class Paginator(discord.ui.View):
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.message.edit(embed=embed, view=None)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
     async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         if self.current_page < len(self.collection) - 1:
             self.current_page += 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.message.edit(embed=embed, view=None)
 
 class GlobalPaginator(discord.ui.View):
     def __init__(self, collection):
@@ -132,11 +132,11 @@ class GlobalPaginator(discord.ui.View):
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.message.edit(embed=embed, view=None)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
     async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         if self.current_page < len(self.collection) - 1:
             self.current_page += 1
             embed = self.create_embed()
-            await interaction.response.edit_message(embed=embed, view=self)
+            await interaction.message.edit(embed=embed, view=None)
