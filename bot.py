@@ -1,6 +1,7 @@
 import os
 import discord
 from discord.ext import commands, tasks
+from discord import app_commands
 import random
 import json
 from datetime import datetime, timedelta
@@ -55,18 +56,24 @@ cards, user_collections, user_data = load_data()
 @bot.event
 async def on_ready():
     print(f'Bot is ready. Logged in as {bot.user}')
+    try:
+        synced = await bot.tree.sync()
+        print(f'Synced {len(synced)} commands.')
+    except Exception as e:
+        print(f'Error syncing commands: {e}')
 
-@bot.command()
-async def add_card(ctx, name: str, value: int, rank: str, description: str, image_url: str):
+@bot.tree.command(name="add_card", description="Add a new card")
+@app_commands.describe(name="Name of the card", value="Value of the card", rank="Rank of the card", description="Description of the card", image_url="Image URL of the card")
+async def add_card(interaction: discord.Interaction, name: str, value: int, rank: str, description: str, image_url: str):
     """Command to add a new card."""
     card = {'name': name, 'value': value, 'rank': rank, 'description': description, 'image_url': image_url, 'claimed_by': None}
     cards.append(card)
     save_data(cards, user_collections, user_data)
-    await ctx.send(f'Card {name} added successfully!')
+    await interaction.response.send_message(f'Card {name} added successfully!', ephemeral=True)
 
 class ClaimButton(discord.ui.Button):
     def __init__(self, card, user_data, user_collections):
-        super().__init__(label="❤️", style=discord.ButtonStyle.primary)
+        super().__init__(label="Claim", style=discord.ButtonStyle.primary)
         self.card = card
         self.user_data = user_data
         self.user_collections = user_collections
@@ -94,6 +101,30 @@ class ClaimButton(discord.ui.Button):
         
         save_data(cards, user_collections, user_data)
 
+class GemButton(discord.ui.Button):
+    def __init__(self, card, user_data, user_collections):
+        super().__init__(label="💎", style=discord.ButtonStyle.secondary)
+        self.card = card
+        self.user_data = user_data
+        self.user_collections = user_collections
+
+    async def callback(self, interaction: discord.Interaction):
+        user_id = str(interaction.user.id)
+        if 'last_gem_time' not in self.user_data.get(user_id, {}):
+            self.user_data.setdefault(user_id, {})['last_gem_time'] = str(datetime.utcnow() - timedelta(hours=4))
+
+        last_gem_time = datetime.fromisoformat(self.user_data[user_id]['last_gem_time'])
+        if datetime.utcnow() - last_gem_time < timedelta(hours=3):
+            await interaction.response.send_message("You can only collect gems once every 3 hours.", ephemeral=True)
+            return
+
+        self.user_data[user_id]['last_gem_time'] = str(datetime.utcnow())
+        self.user_data.setdefault(user_id, {}).setdefault('coins', 0)
+        self.user_data[user_id]['coins'] += self.card['value']
+
+        save_data(cards, user_collections, user_data)
+        await interaction.response.send_message(f"You received {self.card['value']} coins from the gem!", ephemeral=True)
+
 @bot.command()
 @commands.cooldown(5, 3600, commands.BucketType.user)
 async def roll(ctx):
@@ -111,7 +142,12 @@ async def roll(ctx):
     embed.set_image(url=card['image_url'])
 
     view = discord.ui.View()
-    view.add_item(ClaimButton(card, user_data, user_collections))
+    if card['claimed_by']:
+        embed.color = discord.Color.red()
+        view.add_item(GemButton(card, user_data, user_collections))
+    else:
+        embed.color = discord.Color.orange()
+        view.add_item(ClaimButton(card, user_data, user_collections))
 
     await ctx.send(embed=embed, view=view)
 
@@ -155,14 +191,14 @@ class Paginator(discord.ui.View):
         embed.set_image(url=card["image_url"])
         return embed
 
-    @discord.ui.button(label="⬅️", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
     async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_embed()
             await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="➡️", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
     async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
         if self.current_page < len(self.collection) - 1:
             self.current_page += 1
@@ -273,7 +309,7 @@ async def divorce(ctx, name: str):
     card['claimed_by'] = None
 
     save_data(cards, user_collections, user_data)
-    await ctx.send(f'You have divorced {name} and received {card["value"]} 💎.')
+    await ctx.send(f'You have divorced {name} and received {card["value"]} coins.')
 
 # Add initial cards directly to the list
 initial_cards = [
