@@ -66,7 +66,7 @@ async def add_card(ctx, name: str, value: int, rank: str, description: str, imag
 
 class ClaimButton(discord.ui.Button):
     def __init__(self, card, user_data, user_collections):
-        super().__init__(label="Claim", style=discord.ButtonStyle.primary)
+        super().__init__(label="❤️", style=discord.ButtonStyle.primary)
         self.card = card
         self.user_data = user_data
         self.user_collections = user_collections
@@ -135,17 +135,39 @@ async def buyluck(ctx):
     save_data(cards, user_collections, user_data)
     await ctx.send("You have purchased more luck for 500 coins!")
 
-@bot.command()
-async def mm(ctx):
-    """Command to display the user's collection in text."""
-    user = ctx.message.author
-    if str(user.id) not in user_collections or not user_collections[str(user.id)]:
-        await ctx.send('You have no cards in your collection.')
-        return
+class Paginator(discord.ui.View):
+    def __init__(self, ctx, collection, user_data):
+        super().__init__(timeout=60)
+        self.ctx = ctx
+        self.collection = collection
+        self.user_data = user_data
+        self.current_page = 0
 
-    collection = user_collections[str(user.id)]
-    collection_list = '\n'.join([f'{card["name"]} ({card["rank"]}) - {card["description"]} (Value: {card["value"]} 💎)' for card in collection])
-    await ctx.send(f'Your collection:\n{collection_list}')
+    async def send_initial_message(self):
+        embed = self.create_embed()
+        await self.ctx.send(embed=embed, view=self)
+
+    def create_embed(self):
+        card = self.collection[self.current_page]
+        embed = discord.Embed(title=card["name"], description=card["description"])
+        embed.add_field(name="Rank", value=card["rank"])
+        embed.add_field(name="Value", value=f'{card["value"]} 💎')
+        embed.set_image(url=card["image_url"])
+        return embed
+
+    @discord.ui.button(label="⬅️", style=discord.ButtonStyle.secondary)
+    async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if self.current_page > 0:
+            self.current_page -= 1
+            embed = self.create_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="➡️", style=discord.ButtonStyle.secondary)
+    async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+        if self.current_page < len(self.collection) - 1:
+            self.current_page += 1
+            embed = self.create_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
 
 @bot.command()
 async def mmi(ctx):
@@ -155,13 +177,35 @@ async def mmi(ctx):
         await ctx.send('You have no cards in your collection.')
         return
 
+    collection = [card for card in user_collections[str(user.id)] if card['claimed_by'] == str(user.id)]
+    if not collection:
+        await ctx.send('You have no claimed cards in your collection.')
+        return
+
+    paginator = Paginator(ctx, collection, user_data)
+    await paginator.send_initial_message()
+
+@bot.command()
+async def mm(ctx, page: int = 1):
+    """Command to display the user's collection in text."""
+    user = ctx.message.author
+    if str(user.id) not in user_collections or not user_collections[str(user.id)]:
+        await ctx.send('You have no cards in your collection.')
+        return
+
     collection = user_collections[str(user.id)]
-    for card in collection:
-        embed = discord.Embed(title=card["name"], description=card["description"])
-        embed.add_field(name="Rank", value=card["rank"])
-        embed.add_field(name="Value", value=f'{card["value"]} 💎')
-        embed.set_image(url=card["image_url"])
-        await ctx.send(embed=embed)
+    items_per_page = 10
+    total_pages = (len(collection) + items_per_page - 1) // items_per_page
+
+    if page < 1 or page > total_pages:
+        await ctx.send(f'Page {page} is out of range. There are {total_pages} pages in total.')
+        return
+
+    start = (page - 1) * items_per_page
+    end = start + items_per_page
+    collection_page = collection[start:end]
+    collection_list = '\n'.join([f'**{card["name"]}** ({card["rank"]}) - {card["description"]} (Value: {card["value"]} 💎)' for card in collection_page])
+    await ctx.send(f'Your collection (Page {page}/{total_pages}):\n{collection_list}')
 
 @bot.command()
 async def im(ctx, name: str):
@@ -211,9 +255,29 @@ async def trade(ctx, user: discord.User, card_name: str, trade_card_name: str):
     save_data(cards, user_collections, user_data)
     await ctx.send(f'Trade successful! {sender.display_name} traded {card_name} with {user.display_name} for {trade_card_name}.')
 
+@bot.command()
+async def divorce(ctx, name: str):
+    """Command to divorce a character and receive their value."""
+    user = ctx.message.author
+    if str(user.id) not in user_collections or not user_collections[str(user.id)]:
+        await ctx.send('You have no cards in your collection.')
+        return
+
+    card = next((c for c in user_collections[str(user.id)] if c['name'].lower() == name.lower()), None)
+    if not card:
+        await ctx.send(f'You do not have the card {name}.')
+        return
+
+    user_collections[str(user.id)].remove(card)
+    user_data[str(user.id)]['coins'] = user_data.get(str(user.id), {}).get('coins', 0) + card['value']
+    card['claimed_by'] = None
+
+    save_data(cards, user_collections, user_data)
+    await ctx.send(f'You have divorced {name} and received {card["value"]} 💎.')
+
 # Add initial cards directly to the list
 initial_cards = [
-    {'name': 'Gab', 'value': 300, 'rank': 'S', 'description': 'Gabouille', 'image_url': 'https://cdn.discordapp.com/avatars/399511752556937217/de4b501f2960e9ea132593f4c2b07c96.png?size=1024', 'claimed_by': None},
+    {'name': 'Hero', 'value': 150, 'rank': 'A', 'description': 'A brave hero.', 'image_url': 'http://example.com/hero.png', 'claimed_by': None},
     {'name': 'Villain', 'value': 120, 'rank': 'B', 'description': 'A cunning villain.', 'image_url': 'http://example.com/villain.png', 'claimed_by': None}
 ]
 cards.extend(initial_cards)
