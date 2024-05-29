@@ -36,7 +36,7 @@ class ClaimButton(discord.ui.Button):
             embed.add_field(name="Rank", value=self.card['rank'])
             embed.add_field(name="Value", value=f"{self.card['value']} 💎")
             embed.add_field(name="Claimed", value=f"Claimed by <@{user_id}>")
-            embed.set_image(url=self.card['image_url'])
+            embed.set_image(url=self.card['image_urls'][0])
             await interaction.message.edit(embed=embed, view=None)
 
         save_data(self.cards, self.user_collections, self.user_data)
@@ -85,7 +85,7 @@ class Paginator(discord.ui.View):
         embed = discord.Embed(title=card["name"], description=card["description"])
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
-        embed.set_image(url=card["image_url"])
+        embed.set_image(url=card["image_urls"][0])
         embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
@@ -108,13 +108,6 @@ class GlobalPaginator(discord.ui.View):
         self.collection = collection
         self.current_page = 0
 
-    async def get_username(bot, user_id):
-        try:
-            user = await bot.fetch_user(user_id)
-            return user.name
-        except discord.NotFound:
-            return "Unknown User"
-    
     async def send_initial_message(self, ctx_or_interaction):
         embed = self.create_embed()
         if isinstance(ctx_or_interaction, commands.Context):
@@ -127,10 +120,7 @@ class GlobalPaginator(discord.ui.View):
         embed = discord.Embed(title=card["name"], description=card["description"])
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
-        embed.set_image(url=card["image_url"])
-        if card['claimed_by']:
-            embed.add_field(name="Claimed", value = f'<@{card["claimed_by"]}>')
-            
+        embed.set_image(url=card["image_urls"][0])
         embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
