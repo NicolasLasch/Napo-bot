@@ -53,6 +53,10 @@ def save_data(cards, user_collections, user_data):
 
 cards, user_collections, user_data = load_data()
 
+def rank_sort_key(card):
+    rank_order = {'SS': 1, 'S': 2, 'A': 3, 'B': 4, 'C': 5, 'D': 6, 'E': 7}
+    return rank_order.get(card['rank'], 8)
+
 @bot.event
 async def on_ready():
     print(f'Bot is ready. Logged in as {bot.user}')
@@ -62,8 +66,6 @@ async def on_ready():
     except Exception as e:
         print(f'Error syncing commands: {e}')
 
-@bot.tree.command(name="add_character", description="Add a new character card")
-@app_commands.describe(name="Name of the character", value="Value of the character", rank="Rank of the character", description="Description of the character", image_url="Image URL of the character")
 async def add_character(interaction: discord.Interaction, name: str, value: int, rank: str, description: str, image_url: str):
     """Command to add a new card."""
     card = {'name': name, 'value': value, 'rank': rank, 'description': description, 'image_url': image_url, 'claimed_by': None}
@@ -93,7 +95,8 @@ class ClaimButton(discord.ui.Button):
 
         last_claim_time = datetime.fromisoformat(self.user_data[user_id]['last_claim_time'])
         if datetime.utcnow() - last_claim_time < timedelta(hours=3):
-            await interaction.response.send_message("You can only claim once every 3 hours.", ephemeral=True)
+            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
+            await interaction.response.send_message(f"You can only claim once every 3 hours. Please wait **{remaining_time}**.", ephemeral=True)
             return
 
         self.user_data[user_id]['last_claim_time'] = str(datetime.utcnow())
@@ -106,7 +109,13 @@ class ClaimButton(discord.ui.Button):
             self.card['claimed_by'] = user_id
             self.user_collections.setdefault(user_id, []).append(self.card)
             await interaction.response.send_message(f"You have claimed {self.card['name']}!", ephemeral=True)
-        
+            embed = discord.Embed(title=self.card['name'], description=self.card['description'], color=discord.Color.red())
+            embed.add_field(name="Rank", value=self.card['rank'])
+            embed.add_field(name="Value", value=f"{self.card['value']} 💎")
+            embed.add_field(name="Claimed", value=f"Claimed by <@{user_id}>")
+            embed.set_image(url=self.card['image_url'])
+            await interaction.message.edit(embed=embed, view=None)
+
         save_data(cards, user_collections, user_data)
 
 class GemButton(discord.ui.Button):
@@ -123,7 +132,8 @@ class GemButton(discord.ui.Button):
 
         last_gem_time = datetime.fromisoformat(self.user_data[user_id]['last_gem_time'])
         if datetime.utcnow() - last_gem_time < timedelta(hours=3):
-            await interaction.response.send_message("You can only collect gems once every 3 hours.", ephemeral=True)
+            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_gem_time)
+            await interaction.response.send_message(f"You can only collect gems once every 3 hours. Please wait **{remaining_time}**.", ephemeral=True)
             return
 
         self.user_data[user_id]['last_gem_time'] = str(datetime.utcnow())
@@ -158,6 +168,8 @@ async def roll(ctx):
         view.add_item(ClaimButton(card, user_data, user_collections))
 
     await ctx.send(embed=embed, view=view)
+    await asyncio.sleep(45)
+    await ctx.send("Time to claim the character has expired.")
 
 @bot.tree.command(name="roll", description="Roll a random character card")
 async def roll_app(interaction: discord.Interaction):
@@ -182,7 +194,9 @@ async def roll_app(interaction: discord.Interaction):
         embed.color = discord.Color.orange()
         view.add_item(ClaimButton(card, user_data, user_collections))
 
-    await interaction.response.send_message(embed=embed, view=view)
+    message = await interaction.response.send_message(embed=embed, view=view)
+    await asyncio.sleep(45)
+    await interaction.edit_original_message(content="Time to claim the character has expired.", view=None)
 
 @bot.command(name="balance")
 async def balance(ctx):
@@ -195,6 +209,20 @@ async def balance_app(interaction: discord.Interaction):
     user_id = str(interaction.user.id)
     coins = user_data.get(user_id, {}).get('coins', 0)
     await interaction.response.send_message(f"You have {coins} coins.", ephemeral=True)
+
+@bot.command(name="buyluck")
+async def buyluck(ctx):
+    user_id = str(ctx.author.id)
+    coins = user_data.get(user_id, {}).get('coins', 0)
+    if coins < 500:
+        await ctx.send("You need at least 500 coins to buy more luck.")
+        return
+
+    user_data[user_id]['coins'] -= 500
+    user_data[user_id].setdefault('luck', 0)
+    user_data[user_id]['luck'] += 1
+    save_data(cards, user_collections, user_data)
+    await ctx.send("You have purchased more luck for 500 coins!")
 
 @bot.tree.command(name="buyluck", description="Buy more luck for 500 coins")
 async def buyluck_app(interaction: discord.Interaction):
@@ -228,6 +256,8 @@ class Paginator(discord.ui.View):
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
         embed.set_image(url=card["image_url"])
+        embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
+        embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
 
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
@@ -328,7 +358,7 @@ async def top(ctx, page: int = 1):
         await ctx.send('No cards available.')
         return
 
-    sorted_cards = sorted(cards, key=lambda x: x['rank'], reverse=True)
+    sorted_cards = sorted(cards, key=rank_sort_key)
     items_per_page = 10
     total_pages = (len(sorted_cards) + items_per_page - 1) // items_per_page
 
@@ -350,7 +380,7 @@ async def top_app(interaction: discord.Interaction, page: int = 1):
         await interaction.response.send_message('No cards available.', ephemeral=True)
         return
 
-    sorted_cards = sorted(cards, key=lambda x: x['rank'], reverse=True)
+    sorted_cards = sorted(cards, key=rank_sort_key)
     items_per_page = 10
     total_pages = (len(sorted_cards) + items_per_page - 1) // items_per_page
 
@@ -383,6 +413,8 @@ class GlobalPaginator(discord.ui.View):
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
         embed.set_image(url=card["image_url"])
+        embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
+        embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
 
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
@@ -406,7 +438,7 @@ async def topi(ctx):
         await ctx.send('No cards available.')
         return
 
-    sorted_cards = sorted(cards, key=lambda x: x['rank'], reverse=True)
+    sorted_cards = sorted(cards, key=rank_sort_key)
     paginator = GlobalPaginator(ctx, sorted_cards, user_data)
     await paginator.send_initial_message()
 
@@ -416,7 +448,7 @@ async def topi_app(interaction: discord.Interaction):
         await interaction.response.send_message('No cards available.', ephemeral=True)
         return
 
-    sorted_cards = sorted(cards, key=lambda x: x['rank'], reverse=True)
+    sorted_cards = sorted(cards, key=rank_sort_key)
     paginator = GlobalPaginator(interaction, sorted_cards, user_data)
     await paginator.send_initial_message()
 
@@ -565,4 +597,3 @@ cards.extend(initial_cards)
 save_data(cards, user_collections, user_data)
 
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
-
