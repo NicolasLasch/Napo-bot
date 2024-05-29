@@ -91,18 +91,18 @@ class Paginator(discord.ui.View):
         return embed
 
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
-    async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_embed()
-            await interaction.message.edit(embed=embed, view=None)
+            await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
-    async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.current_page < len(self.collection) - 1:
             self.current_page += 1
             embed = self.create_embed()
-            await interaction.message.edit(embed=embed, view=None)
+            await interaction.response.edit_message(embed=embed, view=self)
 
 class GlobalPaginator(discord.ui.View):
     def __init__(self, collection):
@@ -128,15 +128,15 @@ class GlobalPaginator(discord.ui.View):
         return embed
 
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
-    async def previous_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.current_page > 0:
             self.current_page -= 1
             embed = self.create_embed()
-            await interaction.message.edit(embed=embed, view=None)
+            await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="Next", style=discord.ButtonStyle.secondary)
-    async def next_page(self, button: discord.ui.Button, interaction: discord.Interaction):
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         if self.current_page < len(self.collection) - 1:
             self.current_page += 1
             embed = self.create_embed()
-            await interaction.message.edit(embed=embed, view=None)
+            await interaction.response.edit_message(embed=embed, view=self)
