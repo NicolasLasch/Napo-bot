@@ -145,7 +145,7 @@ class ImagePaginator(discord.ui.View):
 
     async def send_initial_message(self, ctx_or_interaction):
         embed = self.create_embed()
-        if isinstance(ctx_or_interaction, commands.Context):
+        if isinstance(ctx_or_interaction, discord.ext.commands.Context):
             await ctx_or_interaction.send(embed=embed, view=self)
         else:
             await ctx_or_interaction.response.send_message(embed=embed, view=self)

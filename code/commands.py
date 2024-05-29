@@ -5,7 +5,7 @@ import random
 import asyncio
 from datetime import datetime, timedelta
 from utils import save_data, load_data, rank_sort_key
-from views import ClaimButton, GemButton, Paginator, GlobalPaginator
+from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator
 
 # Define global variables for tracking rolls
 roll_cooldowns = {}
@@ -23,6 +23,8 @@ base_probabilities = {
     'D': 0.2,
     'E': 0.19
 }
+
+cards, user_collections, user_data = load_data()
 
 def setup_commands(bot, cards, user_collections, user_data):
 
@@ -255,7 +257,6 @@ def setup_commands(bot, cards, user_collections, user_data):
         paginator = GlobalPaginator(sorted_cards)
         await paginator.send_initial_message(interaction)
 
-
     @bot.command(name="im")
     async def im(ctx, name: str):
         """Command to display detailed information about a card with image navigation."""
@@ -277,10 +278,18 @@ def setup_commands(bot, cards, user_collections, user_data):
 
         paginator = ImagePaginator(card)
         await paginator.send_initial_message(interaction)
-
+    
     @bot.command(name="ai")
-    async def add_image(ctx, character_name: str, image_url: str):
-        """Command to add an image to an existing character."""
+    async def add_image(ctx, *, args: str):
+        """Command to add an image to an existing character. Usage: !ai <character_name> $ <image_url>"""
+        try:
+            character_name, image_url = args.split(" $ ")
+            character_name = character_name.strip()
+            image_url = image_url.strip()
+        except ValueError:
+            await ctx.send("Invalid format. Use: !ai <character_name> $ <image_url>")
+            return
+
         card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
         if not card:
             await ctx.send('Character not found.')
@@ -308,6 +317,26 @@ def setup_commands(bot, cards, user_collections, user_data):
         card['image_urls'].append(image_url)
         save_data(cards, user_collections, user_data)
         await interaction.response.send_message(f'Image added to character {character_name} successfully!', ephemeral=True)
+
+    @bot.command(name="balance")
+    async def balance(ctx):
+        """Command to display the user's current balance."""
+        user_id = str(ctx.author.id)
+        if user_id not in user_data:
+            user_data[user_id] = {'coins': 0}
+
+        coins = user_data[user_id].get('coins', 0)
+        await ctx.send(f'You have {coins} coins.')
+
+    @bot.tree.command(name="balance", description="Display your current balance")
+    async def balance_app(interaction: discord.Interaction):
+        """Slash command to display the user's current balance."""
+        user_id = str(interaction.user.id)
+        if user_id not in user_data:
+            user_data[user_id] = {'coins': 0}
+
+        coins = user_data[user_id].get('coins', 0)
+        await interaction.response.send_message(f'You have {coins} coins.', ephemeral=True)
 
 
     @bot.command(name="luck")
@@ -367,27 +396,6 @@ def setup_commands(bot, cards, user_collections, user_data):
 
         save_data(cards, user_collections, user_data)
         await interaction.response.send_message("Your luck percentages have been increased!", ephemeral=True)
-
-    @bot.command(name="balance")
-    async def balance(ctx):
-        """Command to display the user's current balance."""
-        user_id = str(ctx.author.id)
-        if user_id not in user_data:
-            user_data[user_id] = {'coins': 0}
-
-        coins = user_data[user_id].get('coins', 0)
-        await ctx.send(f'You have {coins} coins.')
-
-    @bot.tree.command(name="balance", description="Display your current balance")
-    async def balance_app(interaction: discord.Interaction):
-        """Slash command to display the user's current balance."""
-        user_id = str(interaction.user.id)
-        if user_id not in user_data:
-            user_data[user_id] = {'coins': 0}
-
-        coins = user_data[user_id].get('coins', 0)
-        await interaction.response.send_message(f'You have {coins} coins.', ephemeral=True)
-
 
     @bot.command(name="download_data")
     async def download_data(ctx):
