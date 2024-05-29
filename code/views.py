@@ -108,6 +108,13 @@ class GlobalPaginator(discord.ui.View):
         self.collection = collection
         self.current_page = 0
 
+    async def get_username(bot, user_id):
+        try:
+            user = await bot.fetch_user(user_id)
+            return user.name
+        except discord.NotFound:
+            return "Unknown User"
+    
     async def send_initial_message(self, ctx_or_interaction):
         embed = self.create_embed()
         if isinstance(ctx_or_interaction, commands.Context):
@@ -122,9 +129,9 @@ class GlobalPaginator(discord.ui.View):
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
         embed.set_image(url=card["image_url"])
         if card['claimed_by']:
-            embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)} Claimed : <@{card["claimed_by"]}>')
-        else: 
-            embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
+            embed.add_field(name="Claimed", value = f'<@{card["claimed_by"]}>')
+            
+        embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
 

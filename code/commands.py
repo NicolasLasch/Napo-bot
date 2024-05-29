@@ -124,7 +124,6 @@ def setup_commands(bot, cards, user_collections, user_data):
         if not cards:
             await ctx.send('No cards available.')
             return
-
         sorted_cards = sorted(cards, key=rank_sort_key)
         paginator = GlobalPaginator(sorted_cards)
         await paginator.send_initial_message(ctx)
