@@ -24,6 +24,14 @@ base_probabilities = {
     'E': 0.25
 }
 
+roll_cooldown = commands.CooldownMapping.from_cooldown(5, 3600, commands.BucketType.user)
+
+def get_cooldown(bucket):
+    retry_after = bucket.update_rate_limit()
+    if retry_after:
+        return False, retry_after
+    return True, None
+
 cards, user_collections, user_data = load_data()
 
 def setup_commands(bot, cards, user_collections, user_data):
@@ -130,14 +138,6 @@ def setup_commands(bot, cards, user_collections, user_data):
         save_data(cards, user_collections, user_data)
         await interaction.response.send_message(f'You have successfully divorced {character_name} and received {card["value"]} coins.', ephemeral=True)
 
-    roll_cooldown = commands.CooldownMapping.from_cooldown(5, 3600, commands.BucketType.user)
-
-    def get_cooldown(bucket):
-        retry_after = bucket.update_rate_limit()
-        if retry_after:
-            return False, retry_after
-        return True, None
-
     @bot.command(name="roll")
     @commands.cooldown(5, 3600, commands.BucketType.user)
     async def roll(ctx):
@@ -148,7 +148,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         bucket = roll_cooldown.get_bucket(ctx.message)
         retry_after = bucket.update_rate_limit()
         if retry_after:
-            await ctx.send(f'You have to wait {retry_after:.2f} seconds before being able to roll again.')
+            await ctx.send(f'You have to wait {int(retry_after // 60)} minutes and {int(retry_after % 60)} seconds before being able to roll again.')
             return
 
         card = roll_card(user_id)
@@ -184,7 +184,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         bucket = roll_cooldown.get_bucket(interaction.user)
         success, retry_after = get_cooldown(bucket)
         if not success:
-            await interaction.response.send_message(f'You have to wait {retry_after:.2f} seconds before being able to roll again.', ephemeral=True)
+            await interaction.response.send_message(f'You have to wait {int(retry_after // 60)} minutes and {int(retry_after % 60)} seconds before being able to roll again.', ephemeral=True)
             return
 
         card = roll_card(user_id)
@@ -211,7 +211,6 @@ def setup_commands(bot, cards, user_collections, user_data):
         message = await interaction.original_response()
         await asyncio.sleep(45)
         await message.edit(content="Time to claim the character has expired.", view=None)
-
 
     @bot.command(name="mm")
     async def mm(ctx):
