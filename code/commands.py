@@ -15,13 +15,13 @@ max_claims_per_3_hours = 1
 
 # Define probability distribution
 base_probabilities = {
-    'SS': 0.01,
+    'SS': 0.005,
     'S': 0.05,
     'A': 0.1,
     'B': 0.2,
-    'C': 0.25,
-    'D': 0.2,
-    'E': 0.19
+    'C': 0.185,
+    'D': 0.21,
+    'E': 0.25
 }
 
 cards, user_collections, user_data = load_data()
@@ -404,42 +404,66 @@ def setup_commands(bot, cards, user_collections, user_data):
 
     @bot.command(name="buyluck")
     async def buyluck(ctx):
-        """Command to buy increased luck percentages."""
+        """Command to buy increased luck percentages with progressive cost."""
         user_id = str(ctx.author.id)
         if user_id not in user_data:
-            user_data[user_id] = {}
-        if 'coins' not in user_data[user_id] or user_data[user_id]['coins'] < 100:
-            await ctx.send("You don't have enough coins to buy luck.")
+            user_data[user_id] = {'coins': 0, 'luck_purchases': 0}
+
+        user_info = user_data[user_id]
+        coins = user_info.get('coins', 0)
+        luck_purchases = user_info.get('luck_purchases', 0)
+
+        # Calculate cost based on the number of purchases
+        cost = 500 * (2 ** luck_purchases)
+        if luck_purchases >= 5:
+            cost = 500 * (2 ** 5) + 2000 * (luck_purchases - 5)
+
+        if coins < cost:
+            await ctx.send(f"You don't have enough coins to buy luck. You need {cost} coins.")
             return
 
-        user_data[user_id]['coins'] -= 100
-        if 'luck' not in user_data[user_id]:
-            user_data[user_id]['luck'] = {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}
+        user_info['coins'] -= cost
+        user_info['luck_purchases'] += 1
+
+        if 'luck' not in user_info:
+            user_info['luck'] = {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}
         else:
-            for rank in user_data[user_id]['luck']:
-                user_data[user_id]['luck'][rank] += 0.01
+            for rank in user_info['luck']:
+                user_info['luck'][rank] += 0.01
 
         save_data(cards, user_collections, user_data)
-        await ctx.send("Your luck percentages have been increased!")
+        await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)} coins.")
 
-    @bot.tree.command(name="buyluck", description="Buy increased luck percentages")
+    @bot.tree.command(name="buyluck", description="Buy increased luck percentages with progressive cost")
     async def buyluck_app(interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         if user_id not in user_data:
-            user_data[user_id] = {}
-        if 'coins' not in user_data[user_id] or user_data[user_id]['coins'] < 100:
-            await interaction.response.send_message("You don't have enough coins to buy luck.", ephemeral=True)
+            user_data[user_id] = {'coins': 0, 'luck_purchases': 0}
+
+        user_info = user_data[user_id]
+        coins = user_info.get('coins', 0)
+        luck_purchases = user_info.get('luck_purchases', 0)
+
+        # Calculate cost based on the number of purchases
+        cost = 500 * (2 ** luck_purchases)
+        if luck_purchases >= 5:
+            cost = 500 * (2 ** 5) + 2000 * (luck_purchases - 5)
+
+        if coins < cost:
+            await interaction.response.send_message(f"You don't have enough coins to buy luck. You need {cost} coins.", ephemeral=True)
             return
 
-        user_data[user_id]['coins'] -= 100
-        if 'luck' not in user_data[user_id]:
-            user_data[user_id]['luck'] = {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}
+        user_info['coins'] -= cost
+        user_info['luck_purchases'] += 1
+
+        if 'luck' not in user_info:
+            user_info['luck'] = {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}
         else:
-            for rank in user_data[user_id]['luck']:
-                user_data[user_id]['luck'][rank] += 0.01
+            for rank in user_info['luck']:
+                user_info['luck'][rank] += 0.01
 
         save_data(cards, user_collections, user_data)
-        await interaction.response.send_message("Your luck percentages have been increased!", ephemeral=True)
+        await interaction.response.send_message(f"Your luck percentages have been increased! The next upgrade will cost {500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)} coins.", ephemeral=True)
 
     @bot.command(name="download_data")
     async def download_data(ctx):
