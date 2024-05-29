@@ -402,5 +402,3 @@ def setup_commands(bot, cards, user_collections, user_data):
         global cards, user_collections, user_data
         cards, user_collections, user_data = load_data()
         await interaction.response.send_message("Data uploaded and loaded successfully!", ephemeral=True)
-
-setup_commands(bot, cards, user_collections, user_data)
