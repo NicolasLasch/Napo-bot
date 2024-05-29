@@ -1,1 +1,1 @@
-worker: python discordmudae2.py
+worker: python bot.py
