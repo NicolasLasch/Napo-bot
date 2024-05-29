@@ -8,7 +8,7 @@ from utils import save_data, rank_sort_key
 from views import ClaimButton, GemButton, Paginator, GlobalPaginator
 
 def setup_commands(bot, cards, user_collections, user_data):
-
+    
     @bot.tree.command(name="add_character", description="Add a new character card")
     @app_commands.describe(name="Name of the character", value="Value of the character", rank="Rank of the character", description="Description of the character", image_url="Image URL of the character")
     async def add_character(interaction: discord.Interaction, name: str, value: int, rank: str, description: str, image_url: str):
@@ -37,9 +37,12 @@ def setup_commands(bot, cards, user_collections, user_data):
         card = random.choice(cards)
         user_id = str(ctx.author.id)
 
+        claimed_by = f"Claimed: None" if not card['claimed_by'] else f"Claimed: <@{card['claimed_by']}>"
+
         embed = discord.Embed(title=card['name'], description=card['description'])
         embed.add_field(name="Rank", value=card['rank'])
         embed.add_field(name="Value", value=f"{card['value']} 💎")
+        embed.add_field(name="Claimed", value=claimed_by)
         embed.set_image(url=card['image_url'])
 
         view = discord.ui.View()
@@ -64,9 +67,12 @@ def setup_commands(bot, cards, user_collections, user_data):
         card = random.choice(cards)
         user_id = str(interaction.user.id)
 
+        claimed_by = f"Claimed: None" if not card['claimed_by'] else f"Claimed: <@{card['claimed_by']}>"
+
         embed = discord.Embed(title=card['name'], description=card['description'])
         embed.add_field(name="Rank", value=card['rank'])
         embed.add_field(name="Value", value=f"{card['value']} 💎")
+        embed.add_field(name="Claimed", value=claimed_by)
         embed.set_image(url=card['image_url'])
 
         view = discord.ui.View()
