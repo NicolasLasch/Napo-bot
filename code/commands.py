@@ -28,16 +28,21 @@ cards, user_collections, user_data = load_data()
 
 def setup_commands(bot, cards, user_collections, user_data):
 
+    def initialize_user(user_id):
+        if user_id not in user_data:
+            user_data[user_id] = {'coins': 0, 'luck_purchases': 0, 'luck': {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}}
+
     def get_user_probabilities(user_id):
+        initialize_user(user_id)
         base_chances = base_probabilities.copy()
-        if user_id in user_data and 'luck' in user_data[user_id]:
-            luck_bonus = user_data[user_id]['luck']
-            for rank in base_chances:
-                base_chances[rank] += luck_bonus.get(rank, 0)
-            total = sum(base_chances.values())
-            for rank in base_chances:
-                base_chances[rank] /= total
+        luck_bonus = user_data[user_id]['luck']
+        for rank in base_chances:
+            base_chances[rank] += luck_bonus.get(rank, 0)
+        total = sum(base_chances.values())
+        for rank in base_chances:
+            base_chances[rank] /= total
         return base_chances
+
 
     def roll_card(user_id):
         probabilities = get_user_probabilities(user_id)
@@ -387,6 +392,8 @@ def setup_commands(bot, cards, user_collections, user_data):
     async def luck(ctx):
         """Command to display the user's current luck percentages."""
         user_id = str(ctx.author.id)
+        initialize_user(user_id)
+
         probabilities = get_user_probabilities(user_id)
         embed = discord.Embed(title="Your Luck Percentages")
         for rank, chance in probabilities.items():
@@ -396,22 +403,24 @@ def setup_commands(bot, cards, user_collections, user_data):
     @bot.tree.command(name="luck", description="Display your current luck percentages")
     async def luck_app(interaction: discord.Interaction):
         user_id = str(interaction.user.id)
+        initialize_user(user_id)
+
         probabilities = get_user_probabilities(user_id)
         embed = discord.Embed(title="Your Luck Percentages")
         for rank, chance in probabilities.items():
             embed.add_field(name=rank, value=f"{chance:.2%}")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+
     @bot.command(name="buyluck")
     async def buyluck(ctx):
         """Command to buy increased luck percentages with progressive cost."""
         user_id = str(ctx.author.id)
-        if user_id not in user_data:
-            user_data[user_id] = {'coins': 0, 'luck_purchases': 0}
+        initialize_user(user_id)
 
         user_info = user_data[user_id]
-        coins = user_info.get('coins', 0)
-        luck_purchases = user_info.get('luck_purchases', 0)
+        coins = user_info['coins']
+        luck_purchases = user_info['luck_purchases']
 
         # Calculate cost based on the number of purchases
         cost = 500 * (2 ** luck_purchases)
@@ -425,24 +434,21 @@ def setup_commands(bot, cards, user_collections, user_data):
         user_info['coins'] -= cost
         user_info['luck_purchases'] += 1
 
-        if 'luck' not in user_info:
-            user_info['luck'] = {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}
-        else:
-            for rank in user_info['luck']:
-                user_info['luck'][rank] += 0.01
+        for rank in user_info['luck']:
+            user_info['luck'][rank] += 0.01
 
         save_data(cards, user_collections, user_data)
-        await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)} coins.")
+        next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
+        await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
 
     @bot.tree.command(name="buyluck", description="Buy increased luck percentages with progressive cost")
     async def buyluck_app(interaction: discord.Interaction):
         user_id = str(interaction.user.id)
-        if user_id not in user_data:
-            user_data[user_id] = {'coins': 0, 'luck_purchases': 0}
+        initialize_user(user_id)
 
         user_info = user_data[user_id]
-        coins = user_info.get('coins', 0)
-        luck_purchases = user_info.get('luck_purchases', 0)
+        coins = user_info['coins']
+        luck_purchases = user_info['luck_purchases']
 
         # Calculate cost based on the number of purchases
         cost = 500 * (2 ** luck_purchases)
@@ -456,14 +462,12 @@ def setup_commands(bot, cards, user_collections, user_data):
         user_info['coins'] -= cost
         user_info['luck_purchases'] += 1
 
-        if 'luck' not in user_info:
-            user_info['luck'] = {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}
-        else:
-            for rank in user_info['luck']:
-                user_info['luck'][rank] += 0.01
+        for rank in user_info['luck']:
+            user_info['luck'][rank] += 0.01
 
         save_data(cards, user_collections, user_data)
-        await interaction.response.send_message(f"Your luck percentages have been increased! The next upgrade will cost {500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)} coins.", ephemeral=True)
+        next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
+        await interaction.response.send_message(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.", ephemeral=True)
 
     @bot.command(name="download_data")
     async def download_data(ctx):
