@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import random
 import asyncio
+from datetime import datetime, timedelta
 from utils import save_data, rank_sort_key
 from views import ClaimButton, GemButton, Paginator, GlobalPaginator
 
@@ -25,7 +26,6 @@ def setup_commands(bot, cards, user_collections, user_data):
         save_data(cards, user_collections, user_data)
         await ctx.send(f'Character {name} added successfully!')
 
-    
     @bot.command(name="roll")
     @commands.cooldown(5, 3600, commands.BucketType.user)
     async def roll(ctx):
@@ -45,7 +45,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         view = discord.ui.View()
         if card['claimed_by']:
             embed.color = discord.Color.red()
-            view.add_item(GemButton(card, user_data, user_collections))
+            view.add_item(GemButton(card, user_data, user_collections, cards))
         else:
             embed.color = discord.Color.orange()
             view.add_item(ClaimButton(card, user_data, user_collections, cards))
@@ -72,7 +72,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         view = discord.ui.View()
         if card['claimed_by']:
             embed.color = discord.Color.red()
-            view.add_item(GemButton(card, user_data, user_collections))
+            view.add_item(GemButton(card, user_data, user_collections, cards))
         else:
             embed.color = discord.Color.orange()
             view.add_item(ClaimButton(card, user_data, user_collections, cards))
@@ -80,7 +80,7 @@ def setup_commands(bot, cards, user_collections, user_data):
         message = await interaction.response.send_message(embed=embed, view=view)
         await asyncio.sleep(45)
         await message.edit(content="Time to claim the character has expired.", view=None)
-
+        
     @bot.command(name="balance")
     async def balance(ctx):
         user_id = str(ctx.author.id)
