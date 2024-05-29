@@ -3,12 +3,11 @@ import discord
 from discord.ext import commands
 import random
 import json
-from PIL import Image, ImageDraw, ImageFont
-import io
 
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
+intents.message_content = True  # Ensure message content intent is enabled
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -124,6 +123,7 @@ async def trade(ctx, user: discord.User, card_name: str, trade_card_name: str):
     if str(sender.id) not in user_collections or not user_collections[str(sender.id)]:
         await ctx.send('You have no cards to trade.')
         return
+
     sender_card = next((c for c in user_collections[str(sender.id)] if c['name'].lower() == card_name.lower()), None)
     receiver_card = next((c for c in user_collections[str(user.id)] if c['name'].lower() == trade_card_name.lower()), None)
 
@@ -147,16 +147,12 @@ async def trade(ctx, user: discord.User, card_name: str, trade_card_name: str):
     save_data(cards, user_collections)
     await ctx.send(f'Trade successful! {sender.display_name} traded {card_name} with {user.display_name} for {trade_card_name}.')
 
-@bot.command()
-async def add_card_code(name: str, value: int, rank: str, description: str, image_url: str):
-    """Function to add a new card directly in the code."""
-    card = {'name': name, 'value': value, 'rank': rank, 'description': description, 'image_url': image_url, 'claimed_by': None}
-    cards.append(card)
-    save_data(cards, user_collections)
-    print(f'Card {name} added successfully!')
-
-# Add cards directly in the code
-add_card_code('Hero', 150, 'A', 'A brave hero.', 'http://example.com/hero.png')
-add_card_code('Villain', 120, 'B', 'A cunning villain.', 'http://example.com/villain.png')
+# Add initial cards directly to the list
+initial_cards = [
+    {'name': 'Hero', 'value': 150, 'rank': 'A', 'description': 'A brave hero.', 'image_url': 'http://example.com/hero.png', 'claimed_by': None},
+    {'name': 'Villain', 'value': 120, 'rank': 'B', 'description': 'A cunning villain.', 'image_url': 'http://example.com/villain.png', 'claimed_by': None}
+]
+cards.extend(initial_cards)
+save_data(cards, user_collections)
 
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
