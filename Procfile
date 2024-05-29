@@ -1,0 +1,1 @@
+worker: python discordmudae2.py
