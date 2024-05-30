@@ -497,7 +497,8 @@ def setup_commands(bot):
             user_data[user_id]['last_claim_time'] = str(datetime.utcnow() - timedelta(hours=4))
 
         last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
-        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
+        print(datetime.utcnow() - last_claim_time)
+        if datetime.utcnow() - last_claim_time > timedelta(hours=3):
             pass
             await ctx.send("Your still have a claim left... You cannot use this command right now")
         else:
