@@ -167,7 +167,7 @@ def setup_commands(bot):
 
     @bot.command(name="roll")
     async def roll(ctx):
-        """Command to roll (5 times) every hours."""
+        """Command to roll (5 times) every hour."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         user_id = str(ctx.author.id)
@@ -190,18 +190,23 @@ def setup_commands(bot):
             return
 
         embed = discord.Embed(title=card['name'], description=card['description'])
-        claimed_by = f"Claimed by no one" if not card['claimed_by'] else f"Claimed by <@{card['claimed_by']}>"
-        embed.add_field(name=f"{card['value']} 💎- {card['rank']} ", value="")
+        if card['claimed_by']:
+            user = await ctx.guild.fetch_member(card['claimed_by'])
+            claimed_by = f'Claimed by {user.name}'
+            profile_url = user.avatar.url if user.avatar else user.default_avatar.url
+            embed.set_footer(text=claimed_by, icon_url=profile_url)
+            embed.color = discord.Color.red()
+        else:
+            embed.set_footer(text="Claimed by no one")
+            embed.color = discord.Color.orange()
+
+        embed.add_field(name=f"{card['value']} 💎 - {card['rank']}", value="")
         embed.set_image(url=card['image_urls'][0])
-        user = ctx.author
-        embed.set_footer(text=claimed_by)
 
         view = discord.ui.View()
         if card['claimed_by']:
-            embed.color = discord.Color.red()
             view.add_item(GemButton(guild_id, card, user_data, user_collections, cards))
         else:
-            embed.color = discord.Color.orange()
             view.add_item(ClaimButton(guild_id, card, user_data, user_collections, cards))
 
         message = await ctx.send(embed=embed, view=view)
@@ -209,6 +214,7 @@ def setup_commands(bot):
         await message.edit(content="Time to claim the character has expired.", view=None)
 
         save_data(guild_id, cards, user_collections, user_data)
+
 
     @bot.command(name="mm")
     async def mm(ctx, member: discord.Member = None):

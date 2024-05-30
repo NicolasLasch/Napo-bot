@@ -51,19 +51,29 @@ class GemButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
-        user_id = str(interaction.user.id)
         time_until_reset = get_time_until_next_reset()
 
         if time_until_reset > timedelta(hours=3):
             await interaction.response.send_message(f"You can only collect gems once every 3 hours. The next reset is in **{time_until_reset.seconds // 3600}h {time_until_reset.seconds % 3600 // 60}m**.", ephemeral=True)
             return
 
-        self.user_data[user_id]['last_gem_time'] = str(datetime.utcnow())
+        if 'last_gem_time' not in self.user_data:
+            self.user_data['last_gem_time'] = str(datetime.utcnow() - timedelta(hours=4))
+
+        last_gem_time = datetime.fromisoformat(self.user_data['last_gem_time'])
+        if datetime.utcnow() - last_gem_time < timedelta(hours=3):
+            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_gem_time)
+            hours, remainder = divmod(remaining_time.seconds, 3600)
+            minutes, _ = divmod(remainder, 60)
+            await interaction.response.send_message(f"The gem has already been collected. It will reset in **{hours}h {minutes}m**.", ephemeral=True)
+            return
+
+        self.user_data['last_gem_time'] = str(datetime.utcnow())
         self.user_data.setdefault(user_id, {}).setdefault('coins', 0)
-        self.user_data[user_id]['coins'] += self.card['value']//10
+        self.user_data[user_id]['coins'] += self.card['value'] // 10
 
         save_data(self.guild_id, self.cards, self.user_collections, self.user_data)
-        await interaction.response.send_message(f"You received **{self.card['value']//10}** coins from the gem 💎!", ephemeral=True)
+        await interaction.response.send_message(f"You received **{self.card['value'] // 10}** coins from the gem 💎!", ephemeral=True)
 
 class Paginator(discord.ui.View):
     def __init__(self, guild_id, collection):
