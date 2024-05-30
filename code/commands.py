@@ -190,12 +190,11 @@ def setup_commands(bot):
             return
 
         embed = discord.Embed(title=card['name'], description=card['description'])
-        claimed_by = f"appartien à personne" if not card['claimed_by'] else f"appartien à <@{card['claimed_by']}>"
+        claimed_by = f"Claimed by no one" if not card['claimed_by'] else f"Claimed by <@{card['claimed_by']}>"
         embed.add_field(name=f"{card['value']} 💎- {card['rank']} ", value="")
         embed.set_image(url=card['image_urls'][0])
         user = ctx.author
-        profile_url = user.avatar.url if user.avatar else user.default_avatar.url
-        embed.set_footer(text=claimed_by, icon_url=profile_url)
+        embed.set_footer(text=claimed_by)
 
         view = discord.ui.View()
         if card['claimed_by']:
@@ -348,16 +347,18 @@ def setup_commands(bot):
         await paginator.send_initial_message(interaction)
 
     @bot.command(name="mu")
-    async def mu(ctx):
-        """Command to check the remaining time before claim reset."""
+    async def mu(ctx, member: discord.Member = None):
+        """Command to check the remaining time before claim reset and if a claim has been made."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
-        user_id = str(ctx.author.id)
+        if member is None:
+            member = ctx.author
+        user_id = str(member.id)
         user_data = guild_data[guild_id][2]
         initialize_user(guild_id, user_id)
 
         if 'last_claim_time' not in user_data.get(user_id, {}):
-            await ctx.send("You haven't claimed any card yet.")
+            await ctx.send(f"{member.display_name} hasn't claimed any card yet.")
             return
 
         last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
@@ -365,21 +366,23 @@ def setup_commands(bot):
             remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
             hours, remainder = divmod(remaining_time.seconds, 3600)
             minutes, _ = divmod(remainder, 60)
-            await ctx.send(f"You can claim again in **{hours}h {minutes}m**.")
+            await ctx.send(f"{member.display_name} can claim again in **{hours}h {minutes}m**.")
         else:
-            await ctx.send("You can claim now!")
+            await ctx.send(f"{member.display_name} can claim now!")
 
-    @bot.tree.command(name="mu", description="Check the remaining time before claim reset")
-    async def mu_app(interaction: discord.Interaction):
-        """Slash command to check the remaining time before claim reset."""
+    @bot.tree.command(name="mu", description="Check the remaining time before claim reset and if a claim has been made")
+    async def mu_app(interaction: discord.Interaction, member: discord.Member = None):
+        """Slash command to check the remaining time before claim reset and if a claim has been made."""
         guild_id = str(interaction.guild.id)
         initialize_guild(guild_id)
-        user_id = str(interaction.user.id)
+        if member is None:
+            member = interaction.user
+        user_id = str(member.id)
         user_data = guild_data[guild_id][2]
         initialize_user(guild_id, user_id)
 
         if 'last_claim_time' not in user_data.get(user_id, {}):
-            await interaction.response.send_message("You haven't claimed any card yet.", ephemeral=True)
+            await interaction.response.send_message(f"{member.display_name} hasn't claimed any card yet.", ephemeral=True)
             return
 
         last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
@@ -387,9 +390,10 @@ def setup_commands(bot):
             remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
             hours, remainder = divmod(remaining_time.seconds, 3600)
             minutes, _ = divmod(remainder, 60)
-            await interaction.response.send_message(f"You can claim again in **{hours}h {minutes}m**.", ephemeral=True)
+            await interaction.response.send_message(f"{member.display_name} can claim again in **{hours}h {minutes}m**.", ephemeral=True)
         else:
-            await interaction.response.send_message("You can claim now!", ephemeral=True)
+            await interaction.response.send_message(f"{member.display_name} can claim now!", ephemeral=True)
+
 
     
     @bot.command(name="im")
