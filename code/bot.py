@@ -5,23 +5,15 @@ from discord import app_commands
 import asyncio
 from datetime import datetime, timedelta
 from utils import load_data, save_data
+from config import initialize_guild_data, load_guild_data, guild_data
 from commands import setup_commands
 
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
-intents.message_content = True  # Ensure message content intent is enabled
+intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-guild_data = {}
-for guild in bot.guilds:
-    guild_data[guild.id] = load_data(guild.id)
-
-@bot.event
-async def on_guild_join(guild):
-    guild_data[guild.id] = load_data(guild.id)
-
 
 @tasks.loop(minutes=1)
 async def reset_rolls():
@@ -34,22 +26,21 @@ async def reset_rolls():
     for guild in bot.guilds:
         for member in guild.members:
             if not member.bot:
+                user_data = guild_data[guild.id][2]
                 user_data[str(member.id)]['rolls'] = 5
                 user_data[str(member.id)]['claims'] = 1
-
-setup_commands(bot, cards, user_collections, user_data)
-
 
 @bot.event
 async def on_ready():
     print(f'Bot is ready. Logged in as {bot.user}')
     try:
+        initialize_guild_data(bot)
         synced = await bot.tree.sync()
         print(f'Synced {len(synced)} commands.')
         reset_rolls.start() 
     except Exception as e:
         print(f'Error syncing commands: {e}')
 
-setup_commands(bot, cards, user_collections, user_data)
+setup_commands(bot)
 
 bot.run(os.getenv('DISCORD_BOT_TOKEN'))
