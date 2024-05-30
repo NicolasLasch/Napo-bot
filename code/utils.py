@@ -46,3 +46,7 @@ def save_data(guild_id, cards, user_collections, user_data):
 
     with open(user_data_file, 'w') as f:
         json.dump(user_data, f, indent=4)
+
+def rank_sort_key(card):
+    rank_order = {'SS': 0, 'S': 1, 'A': 2, 'B': 3, 'C': 4, 'D': 5, 'E': 6}
+    return rank_order.get(card['rank'], 7)
