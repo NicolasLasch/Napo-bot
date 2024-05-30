@@ -126,9 +126,11 @@ class GlobalPaginator(discord.ui.View):
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
         embed.set_image(url=card["image_urls"][0])
-        embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
+        claimed_by = "Not claimed" if not card["claimed_by"] else f'Claimed by <@{card["claimed_by"]}>'
+        embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)} • {claimed_by}')
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
+
 
     @discord.ui.button(label="⬅️", style=discord.ButtonStyle.secondary)
     async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
