@@ -44,6 +44,9 @@ def get_cooldown(bucket):
     return True, None
 
 def setup_commands(bot):
+    def initialize_guild(guild_id):
+        if guild_id not in guild_data:
+            guild_data[guild_id] = load_data(guild_id)
 
     def initialize_user(guild_id, user_id):
         if user_id not in guild_data[guild_id][2]:
@@ -96,6 +99,7 @@ def setup_commands(bot):
     async def add_character(interaction: discord.Interaction, name: str, value: int, rank: str, description: str, image_urls: str):
         """Command to add a new card."""
         guild_id = str(interaction.guild.id)
+        initialize_guild(guild_id)
         image_url_list = image_urls.split(';')
         card = {'name': name, 'value': value, 'rank': rank, 'description': description, 'image_urls': image_url_list, 'claimed_by': None}
         guild_data[guild_id][0].append(card)
@@ -107,6 +111,7 @@ def setup_commands(bot):
     async def add_character_cmd(ctx, name: str, value: int, rank: str, description: str, image_urls: str):
         """Command to add a new card."""
         guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
         image_url_list = image_urls.split(';')
         card = {'name': name, 'value': value, 'rank': rank, 'description': description, 'image_urls': image_url_list, 'claimed_by': None}
         guild_data[guild_id][0].append(card)
@@ -117,6 +122,7 @@ def setup_commands(bot):
     async def divorce(ctx, *, character_name: str):
         """Command to unclaim a character in exchange for its value."""
         guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
         user_id = str(ctx.author.id)
         card = next((c for c in guild_data[guild_id][1].get(user_id, []) if c['name'].lower() == character_name.lower()), None)
 
@@ -140,6 +146,7 @@ def setup_commands(bot):
     async def divorce_app(interaction: discord.Interaction, character_name: str):
         """Slash command to unclaim a character in exchange for its value."""
         guild_id = str(interaction.guild.id)
+        initialize_guild(guild_id)
         user_id = str(interaction.user.id)
         card = next((c for c in guild_data[guild_id][1].get(user_id, []) if c['name'].lower() == character_name.lower()), None)
 
@@ -161,6 +168,7 @@ def setup_commands(bot):
     @bot.command(name="roll")
     async def roll(ctx):
         guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
         user_id = str(ctx.author.id)
         cards, user_collections, user_data = guild_data[guild_id]
         initialize_user(guild_id, user_id)
@@ -203,6 +211,7 @@ def setup_commands(bot):
         async def mm(ctx):
             """Command to display the user's collection."""
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             user_id = str(ctx.author.id)
             user_collections = guild_data[guild_id][1]
             if user_id not in user_collections or not user_collections[user_id]:
@@ -217,6 +226,7 @@ def setup_commands(bot):
         @bot.tree.command(name="mm", description="Display your card collection")
         async def mm_app(interaction: discord.Interaction):
             guild_id = str(interaction.guild.id)
+            initialize_guild(guild_id)
             user_id = str(interaction.user.id)
             user_collections = guild_data[guild_id][1]
             if user_id not in user_collections or not user_collections[user_id]:
@@ -232,6 +242,7 @@ def setup_commands(bot):
         async def top(ctx):
             """Command to display the top characters globally."""
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             cards = guild_data[guild_id][0]
             if not cards:
                 await ctx.send('No cards available.')
@@ -245,6 +256,7 @@ def setup_commands(bot):
         @bot.tree.command(name="top", description="Display the top characters globally")
         async def top_app(interaction: discord.Interaction):
             guild_id = str(interaction.guild.id)
+            initialize_guild(guild_id)
             cards = guild_data[guild_id][0]
             if not cards:
                 await interaction.response.send_message('No cards available.', ephemeral=True)
@@ -259,6 +271,7 @@ def setup_commands(bot):
         async def mmi(ctx):
             """Command to display the user's collection with images."""
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             user_id = str(ctx.author.id)
             user_collections = guild_data[guild_id][1]
             if user_id not in user_collections or not user_collections[user_id]:
@@ -276,6 +289,7 @@ def setup_commands(bot):
         @bot.tree.command(name="mmi", description="Display your claimed cards with images")
         async def mmi_app(interaction: discord.Interaction):
             guild_id = str(interaction.guild.id)
+            initialize_guild(guild_id)
             user_id = str(interaction.user.id)
             user_collections = guild_data[guild_id][1]
             if user_id not in user_collections or not user_collections[user_id]:
@@ -294,6 +308,7 @@ def setup_commands(bot):
         async def topi(ctx):
             """Command to display the top characters globally with images."""
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             cards = guild_data[guild_id][0]
             if not cards:
                 await ctx.send('No cards available.')
@@ -306,6 +321,7 @@ def setup_commands(bot):
         @bot.tree.command(name="topi", description="Display the top characters globally with images")
         async def topi_app(interaction: discord.Interaction):
             guild_id = str(interaction.guild.id)
+            initialize_guild(guild_id)
             cards = guild_data[guild_id][0]
             if not cards:
                 await interaction.response.send_message('No cards available.', ephemeral=True)
@@ -319,6 +335,7 @@ def setup_commands(bot):
         async def im(ctx, name: str):
             """Command to display detailed information about a card with image navigation."""
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             cards = guild_data[guild_id][0]
             card = next((c for c in cards if c['name'].lower() == name.lower()), None)
             if not card:
@@ -332,6 +349,7 @@ def setup_commands(bot):
         @app_commands.describe(name="Character name")
         async def im_app(interaction: discord.Interaction, name: str):
             guild_id = str(interaction.guild.id)
+            initialize_guild(guild_id)
             cards = guild_data[guild_id][0]
             card = next((c for c in cards if c['name'].lower() == name.lower()), None)
             if not card:
@@ -346,6 +364,7 @@ def setup_commands(bot):
         async def add_image(ctx, *, args: str):
             """Command to add an image to an existing character. Usage: !ai <character_name> $ <image_url>"""
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             cards = guild_data[guild_id][0]
             try:
                 character_name, image_url = args.split(" $ ")
@@ -373,6 +392,7 @@ def setup_commands(bot):
         async def add_image_app(interaction: discord.Interaction, character_name: str, image_url: str):
             """Slash command to add an image to an existing character."""
             guild_id = str(interaction.guild.id)
+            initialize_guild(guild_id)
             cards = guild_data[guild_id][0]
             card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
             if not card:
@@ -389,6 +409,7 @@ def setup_commands(bot):
         @bot.command(name="balance")
         async def balance(ctx):
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             user_id = str(ctx.author.id)
             cards, user_collections, user_data = guild_data[guild_id]
             initialize_user(guild_id, user_id)
@@ -399,6 +420,7 @@ def setup_commands(bot):
         @bot.command(name="luck")
         async def luck(ctx):
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             user_id = str(ctx.author.id)
             cards, user_collections, user_data = guild_data[guild_id]
             initialize_user(guild_id, user_id)
@@ -412,6 +434,7 @@ def setup_commands(bot):
         @bot.command(name="buyluck")
         async def buyluck(ctx):
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             user_id = str(ctx.author.id)
             cards, user_collections, user_data = guild_data[guild_id]
             initialize_user(guild_id, user_id)
@@ -441,6 +464,7 @@ def setup_commands(bot):
         @bot.command(name="daily")
         async def daily(ctx):
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             user_id = str(ctx.author.id)
             cards, user_collections, user_data = guild_data[guild_id]
             initialize_user(guild_id, user_id)
@@ -460,6 +484,7 @@ def setup_commands(bot):
         @bot.command(name="dailyreset")
         async def dailyreset(ctx):
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             user_id = str(ctx.author.id)
             cards, user_collections, user_data = guild_data[guild_id]
             initialize_user(guild_id, user_id)
@@ -478,6 +503,7 @@ def setup_commands(bot):
         @bot.command(name="trade")
         async def trade(ctx, user: discord.User, card_name: str):
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             user_collections = guild_data[guild_id][1]
             sender = ctx.message.author
             sender_id = str(sender.id)
@@ -534,6 +560,7 @@ def setup_commands(bot):
         async def download_data(ctx):
             """Command to download the JSON files."""
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             await ctx.send(file=discord.File(f'data/{guild_id}_cards.json'))
             await ctx.send(file=discord.File(f'data/{guild_id}_collections.json'))
             await ctx.send(file=discord.File(f'data/{guild_id}_user_data.json'))
@@ -543,6 +570,7 @@ def setup_commands(bot):
         async def download_data_app(interaction: discord.Interaction):
             """Slash command to download the JSON files."""
             guild_id = str(interaction.guild.id)
+            initialize_guild(guild_id)
             await interaction.response.send_message("Downloading data...", ephemeral=True)
             await interaction.followup.send(file=discord.File(f'data/{guild_id}_cards.json'))
             await interaction.followup.send(file=discord.File(f'data/{guild_id}_collections.json'))
@@ -553,6 +581,7 @@ def setup_commands(bot):
         async def upload_data(ctx, cards_file: discord.Attachment, collections_file: discord.Attachment, user_data_file: discord.Attachment):
             """Command to upload the JSON files."""
             guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
             await cards_file.save(f'data/{guild_id}_cards.json')
             await collections_file.save(f'data/{guild_id}_collections.json')
             await user_data_file.save(f'data/{guild_id}_user_data.json')
@@ -577,6 +606,7 @@ def setup_commands(bot):
         async def upload_data_app(interaction: discord.Interaction, cards_file: discord.Attachment, collections_file: discord.Attachment, user_data_file: discord.Attachment):
             """Slash command to upload the JSON files."""
             guild_id = str(interaction.guild.id)
+            initialize_guild(guild_id)
             await cards_file.save(f'data/{guild_id}_cards.json')
             await collections_file.save(f'data/{guild_id}_collections.json')
             await user_data_file.save(f'data/{guild_id}_user_data.json')
