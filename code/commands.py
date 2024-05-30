@@ -150,7 +150,7 @@ def setup_commands(bot, cards, user_collections, user_data):
     async def roll(ctx):
         user_id = str(ctx.author.id)
         if user_id not in user_data:
-            user_data[user_id] = initialize_user(user_id)
+            user_data[user_id] = {'coins': 0, 'luck_purchases': 0, 'luck': {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}, 'rolls': max_rolls_per_hour}
 
         rolls_left = user_data[user_id].get('rolls', max_rolls_per_hour)
         if rolls_left <= 0:
