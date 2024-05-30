@@ -137,7 +137,7 @@ class GlobalPaginator(discord.ui.View):
     async def create_embed(self, ctx_or_interaction):
         card = self.collection[self.current_page]
         embed = discord.Embed(title=card["name"], description=card["description"])
-        embed.add_field(name=f"{self.card['rank']} • {self.card['value']} 💎", value="")
+        embed.add_field(name=f"{card['rank']} • {card['value']} 💎", value="")
         embed.set_image(url=card["image_urls"][0])
 
         if card["claimed_by"]:

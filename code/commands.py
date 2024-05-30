@@ -191,8 +191,11 @@ def setup_commands(bot):
 
         embed = discord.Embed(title=card['name'], description=card['description'])
         claimed_by = f"appartien à personne" if not card['claimed_by'] else f"appartien à <@{card['claimed_by']}>"
-        embed.add_field(name=f"{card['value']} 💎- {card['rank']} ", value=claimed_by)
+        embed.add_field(name=f"{card['value']} 💎- {card['rank']} ", value="")
         embed.set_image(url=card['image_urls'][0])
+        user = ctx.author
+        profile_url = user.avatar.url if user.avatar else user.default_avatar.url
+        embed.set_footer(text=claimed_by, icon_url=profile_url)
 
         view = discord.ui.View()
         if card['claimed_by']:
