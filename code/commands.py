@@ -42,21 +42,6 @@ cards, user_collections, user_data = load_data()
 
 def setup_commands(bot, cards, user_collections, user_data):
 
-    @tasks.loop(minutes=1)
-    async def reset_rolls():
-        now = datetime.utcnow()
-        next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-        await asyncio.sleep((next_hour - now).total_seconds())
-        global roll_cooldowns
-        roll_cooldowns = {}
-        for guild in bot.guilds:
-            for member in guild.members:
-                if not member.bot:
-                    user_data[str(member.id)]['rolls'] = max_rolls_per_hour
-
-    reset_rolls.start()
-
-
     def initialize_user(user_id):
         if user_id not in user_data:
             user_data[user_id] = {'coins': 0, 'luck_purchases': 0, 'luck': {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}, 'rolls': max_rolls_per_hour}
