@@ -196,10 +196,10 @@ def setup_commands(bot):
         view = discord.ui.View()
         if card['claimed_by']:
             embed.color = discord.Color.red()
-            view.add_item(GemButton(card, user_data, user_collections, cards))
+            view.add_item(GemButton(guild_id, card, user_data, user_collections, cards))
         else:
             embed.color = discord.Color.orange()
-            view.add_item(ClaimButton(card, user_data, user_collections, cards))
+            view.add_item(ClaimButton(guild_id, card, user_data, user_collections, cards))
 
         message = await ctx.send(embed=embed, view=view)
         await asyncio.sleep(45)
@@ -283,7 +283,7 @@ def setup_commands(bot):
             await ctx.send('You have no claimed cards in your collection.')
             return
 
-        paginator = Paginator(collection)
+        paginator = Paginator(guild_id, collection)
         await paginator.send_initial_message(ctx)
 
     @bot.tree.command(name="mmi", description="Display your claimed cards with images")
@@ -301,7 +301,7 @@ def setup_commands(bot):
             await interaction.response.send_message('You have no claimed cards in your collection.', ephemeral=True)
             return
 
-        paginator = Paginator(collection)
+        paginator = Paginator(guild_id, collection)
         await paginator.send_initial_message(interaction)
 
     @bot.command(name="topi")
@@ -315,7 +315,7 @@ def setup_commands(bot):
             return
 
         sorted_cards = sorted(cards, key=rank_sort_key)
-        paginator = GlobalPaginator(sorted_cards)
+        paginator = GlobalPaginator(guild_id, sorted_cards)
         await paginator.send_initial_message(ctx)
 
     @bot.tree.command(name="topi", description="Display the top characters globally with images")
@@ -328,7 +328,7 @@ def setup_commands(bot):
             return
 
         sorted_cards = sorted(cards, key=rank_sort_key)
-        paginator = GlobalPaginator(sorted_cards)
+        paginator = GlobalPaginator(guild_id, sorted_cards)
         await paginator.send_initial_message(interaction)
 
     @bot.command(name="im")
@@ -342,7 +342,7 @@ def setup_commands(bot):
             await ctx.send('Card not found.')
             return
 
-        paginator = ImagePaginator(card)
+        paginator = ImagePaginator(guild_id, card)
         await paginator.send_initial_message(ctx)
 
     @bot.tree.command(name="im", description="Display detailed information about a card with image navigation")
@@ -356,7 +356,7 @@ def setup_commands(bot):
             await interaction.response.send_message('Card not found.', ephemeral=True)
             return
 
-        paginator = ImagePaginator(card)
+        paginator = ImagePaginator(guild_id, card)
         await paginator.send_initial_message(interaction)
     
     @bot.command(name="ai")

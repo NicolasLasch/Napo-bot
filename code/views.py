@@ -4,8 +4,9 @@ from discord.ext import commands
 from utils import save_data
 
 class ClaimButton(discord.ui.Button):
-    def __init__(self, card, user_data, user_collections, cards):
+    def __init__(self, guild_id, card, user_data, user_collections, cards):
         super().__init__(label="🐷", style=discord.ButtonStyle.primary)
+        self.guild_id = guild_id
         self.card = card
         self.user_data = user_data
         self.user_collections = user_collections
@@ -42,11 +43,12 @@ class ClaimButton(discord.ui.Button):
             embed.set_image(url=self.card['image_urls'][0])
             await interaction.message.edit(embed=embed, view=None)
 
-        save_data(self.cards, self.user_collections, self.user_data)
+        save_data(self.guild_id, self.cards, self.user_collections, self.user_data)
 
 class GemButton(discord.ui.Button):
-    def __init__(self, card, user_data, user_collections, cards):
+    def __init__(self, guild_id, card, user_data, user_collections, cards):
         super().__init__(label="💎", style=discord.ButtonStyle.secondary)
+        self.guild_id = guild_id
         self.card = card
         self.user_data = user_data
         self.user_collections = user_collections
@@ -69,12 +71,13 @@ class GemButton(discord.ui.Button):
         self.user_data.setdefault(user_id, {}).setdefault('coins', 0)
         self.user_data[user_id]['coins'] += self.card['value']
 
-        save_data(self.cards, self.user_collections, self.user_data)
+        save_data(self.guild_id, self.cards, self.user_collections, self.user_data)
         await interaction.response.send_message(f"You received {self.card['value']} coins from the gem!", ephemeral=True)
 
 class Paginator(discord.ui.View):
-    def __init__(self, collection):
+    def __init__(self, guild_id, collection):
         super().__init__(timeout=60)
+        self.guild_id = guild_id
         self.collection = collection
         self.current_page = 0
 
@@ -108,8 +111,9 @@ class Paginator(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)
 
 class GlobalPaginator(discord.ui.View):
-    def __init__(self, collection):
+    def __init__(self, guild_id, collection):
         super().__init__(timeout=60)
+        self.guild_id = guild_id
         self.collection = collection
         self.current_page = 0
 
@@ -145,8 +149,9 @@ class GlobalPaginator(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)
 
 class ImagePaginator(discord.ui.View):
-    def __init__(self, card):
+    def __init__(self, guild_id, card):
         super().__init__(timeout=60)
+        self.guild_id = guild_id
         self.card = card
         self.current_image = 0
 
