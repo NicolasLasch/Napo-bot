@@ -169,11 +169,11 @@ class GlobalPaginator(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)
 
 class ImagePaginator(discord.ui.View):
-    def __init__(self, guild_id, card):
+    def __init__(self, guild_id, card, current_image=0):
         super().__init__(timeout=60)
         self.guild_id = guild_id
         self.card = card
-        self.current_image = 0
+        self.current_image = current_image
 
     async def send_initial_message(self, ctx_or_interaction):
         embed = await self.create_embed(ctx_or_interaction)
