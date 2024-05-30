@@ -167,6 +167,7 @@ def setup_commands(bot):
 
     @bot.command(name="roll")
     async def roll(ctx):
+        """Command to roll (5 times) every hours."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         user_id = str(ctx.author.id)
@@ -208,36 +209,41 @@ def setup_commands(bot):
         save_data(guild_id, cards, user_collections, user_data)
 
     @bot.command(name="mm")
-    async def mm(ctx):
-        """Command to display the user's collection."""
+    async def mm(ctx, member: discord.Member = None):
+        """Command to display the user's collection or another user's collection."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
-        user_id = str(ctx.author.id)
+        if member is None:
+            member = ctx.author
+        user_id = str(member.id)
         user_collections = guild_data[guild_id][1]
         if user_id not in user_collections or not user_collections[user_id]:
-            await ctx.send('You have no cards in your collection.')
-            return
-
-        collection = user_collections[user_id]
-        collection_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in collection])
-        embed = discord.Embed(title="Your Collection", description=collection_list)
-        await ctx.send(embed=embed)
-
-
-    @bot.tree.command(name="mm", description="Display your card collection")
-    async def mm_app(interaction: discord.Interaction):
-        guild_id = str(interaction.guild.id)
-        initialize_guild(guild_id)
-        user_id = str(interaction.user.id)
-        user_collections = guild_data[guild_id][1]
-        if user_id not in user_collections or not user_collections[user_id]:
-            await interaction.response.send_message('You have no cards in your collection.', ephemeral=True)
+            await ctx.send(f'{member.display_name} has no cards in their collection.')
             return
 
         collection = user_collections[user_id]
         collection_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in collection[:10]])
-        embed = discord.Embed(title="Your Collection", description=collection_list)
+        embed = discord.Embed(title=f"{member.display_name}'s Collection", description=collection_list)
+        await ctx.send(embed=embed)
+
+    @bot.tree.command(name="mm", description="Display your card collection or another user's collection")
+    @app_commands.describe(member="The member whose collection you want to see")
+    async def mm_app(interaction: discord.Interaction, member: discord.Member = None):
+        guild_id = str(interaction.guild.id)
+        initialize_guild(guild_id)
+        if member is None:
+            member = interaction.user
+        user_id = str(member.id)
+        user_collections = guild_data[guild_id][1]
+        if user_id not in user_collections or not user_collections[user_id]:
+            await interaction.response.send_message(f'{member.display_name} has no cards in their collection.', ephemeral=True)
+            return
+
+        collection = user_collections[user_id]
+        collection_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in collection[:10]])
+        embed = discord.Embed(title=f"{member.display_name}'s Collection", description=collection_list)
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
     @bot.command(name="top")
     async def top(ctx):
@@ -269,42 +275,47 @@ def setup_commands(bot):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @bot.command(name="mmi")
-    async def mmi(ctx):
-        """Command to display the user's collection with images."""
+    async def mmi(ctx, member: discord.Member = None):
+        """Command to display the user's collection with images or another user's collection."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
-        user_id = str(ctx.author.id)
+        if member is None:
+            member = ctx.author
+        user_id = str(member.id)
         user_collections = guild_data[guild_id][1]
         if user_id not in user_collections or not user_collections[user_id]:
-            await ctx.send('You have no cards in your collection.')
+            await ctx.send(f'{member.display_name} has no cards in their collection.')
             return
 
         collection = [card for card in user_collections[user_id] if card['claimed_by'] == user_id]
         if not collection:
-            await ctx.send('You have no claimed cards in your collection.')
+            await ctx.send(f'{member.display_name} has no claimed cards in their collection.')
             return
 
         paginator = Paginator(guild_id, collection)
         await paginator.send_initial_message(ctx)
 
-
-    @bot.tree.command(name="mmi", description="Display your claimed cards with images")
-    async def mmi_app(interaction: discord.Interaction):
+    @bot.tree.command(name="mmi", description="Display your claimed cards with images or another user's claimed cards")
+    @app_commands.describe(member="The member whose claimed cards you want to see")
+    async def mmi_app(interaction: discord.Interaction, member: discord.Member = None):
         guild_id = str(interaction.guild.id)
         initialize_guild(guild_id)
-        user_id = str(interaction.user.id)
+        if member is None:
+            member = interaction.user
+        user_id = str(member.id)
         user_collections = guild_data[guild_id][1]
         if user_id not in user_collections or not user_collections[user_id]:
-            await interaction.response.send_message('You have no cards in your collection.', ephemeral=True)
+            await interaction.response.send_message(f'{member.display_name} has no cards in their collection.', ephemeral=True)
             return
 
         collection = [card for card in user_collections[user_id] if card['claimed_by'] == user_id]
         if not collection:
-            await interaction.response.send_message('You have no claimed cards in your collection.', ephemeral=True)
+            await interaction.response.send_message(f'{member.display_name} has no claimed cards in their collection.', ephemeral=True)
             return
 
         paginator = Paginator(guild_id, collection)
         await paginator.send_initial_message(interaction)
+
 
     @bot.command(name="topi")
     async def topi(ctx):
@@ -333,9 +344,54 @@ def setup_commands(bot):
         paginator = GlobalPaginator(guild_id, sorted_cards)
         await paginator.send_initial_message(interaction)
 
+    @bot.command(name="mu")
+    async def mu(ctx):
+        """Command to check the remaining time before claim reset."""
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(ctx.author.id)
+        user_data = guild_data[guild_id][2]
+        initialize_user(guild_id, user_id)
+
+        if 'last_claim_time' not in user_data.get(user_id, {}):
+            await ctx.send("You haven't claimed any card yet.")
+            return
+
+        last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
+        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
+            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
+            hours, remainder = divmod(remaining_time.seconds, 3600)
+            minutes, _ = divmod(remainder, 60)
+            await ctx.send(f"You can claim again in **{hours}h {minutes}m**.")
+        else:
+            await ctx.send("You can claim now!")
+
+    @bot.tree.command(name="mu", description="Check the remaining time before claim reset")
+    async def mu_app(interaction: discord.Interaction):
+        """Slash command to check the remaining time before claim reset."""
+        guild_id = str(interaction.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(interaction.user.id)
+        user_data = guild_data[guild_id][2]
+        initialize_user(guild_id, user_id)
+
+        if 'last_claim_time' not in user_data.get(user_id, {}):
+            await interaction.response.send_message("You haven't claimed any card yet.", ephemeral=True)
+            return
+
+        last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
+        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
+            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
+            hours, remainder = divmod(remaining_time.seconds, 3600)
+            minutes, _ = divmod(remainder, 60)
+            await interaction.response.send_message(f"You can claim again in **{hours}h {minutes}m**.", ephemeral=True)
+        else:
+            await interaction.response.send_message("You can claim now!", ephemeral=True)
+
+    
     @bot.command(name="im")
     async def im(ctx, *, args: str):
-        """Command to display detailed information about a card with image navigation."""
+        """Command to display detailed information about a card."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         cards = guild_data[guild_id][0]
@@ -428,18 +484,39 @@ def setup_commands(bot):
         await ctx.send(f'You have {coins} coins.')
 
     @bot.command(name="luck")
-    async def luck(ctx):
+    async def luck(ctx, member: discord.Member = None):
+        """Command to display the user's luck percentages or another user's luck percentages."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
-        user_id = str(ctx.author.id)
+        if member is None:
+            member = ctx.author
+        user_id = str(member.id)
         cards, user_collections, user_data = guild_data[guild_id]
         initialize_user(guild_id, user_id)
 
         probabilities = get_user_probabilities(guild_id, user_id)
-        embed = discord.Embed(title="Your Luck Percentages")
+        embed = discord.Embed(title=f"{member.display_name}'s Luck Percentages")
         for rank, chance in probabilities.items():
             embed.add_field(name=rank, value=f"{chance:.2%}")
         await ctx.send(embed=embed)
+
+    @bot.tree.command(name="luck", description="Display your luck percentages or another user's luck percentages")
+    @app_commands.describe(member="The member whose luck percentages you want to see")
+    async def luck_app(interaction: discord.Interaction, member: discord.Member = None):
+        guild_id = str(interaction.guild.id)
+        initialize_guild(guild_id)
+        if member is None:
+            member = interaction.user
+        user_id = str(member.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
+
+        probabilities = get_user_probabilities(guild_id, user_id)
+        embed = discord.Embed(title=f"{member.display_name}'s Luck Percentages")
+        for rank, chance in probabilities.items():
+            embed.add_field(name=rank, value=f"{chance:.2%}")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
     @bot.command(name="buyluck")
     async def buyluck(ctx):
@@ -473,6 +550,7 @@ def setup_commands(bot):
 
     @bot.command(name="daily")
     async def daily(ctx):
+        """Command get free coins every day"""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         user_id = str(ctx.author.id)
@@ -495,6 +573,7 @@ def setup_commands(bot):
 
     @bot.command(name="dailyreset")
     async def dailyreset(ctx):
+        """Command to reset the claim timer every day"""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         user_id = str(ctx.author.id)
@@ -525,6 +604,7 @@ def setup_commands(bot):
 
     @bot.command(name="trade")
     async def trade(ctx, user: discord.User, *, args: str):
+        """Command to trade cards with another player"""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         user_collections = guild_data[guild_id][1]

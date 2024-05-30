@@ -28,7 +28,7 @@ class ClaimButton(discord.ui.Button):
         self.user_data[user_id]['last_claim_time'] = str(datetime.utcnow())
 
         if self.card['claimed_by']:
-            await interaction.response.send_message(f"This card is already claimed by <@{self.card['claimed_by']}>. You receive **100** coins!", ephemeral=True)
+            await interaction.response.send_message(f"This card is already claimed by **<@{self.card['claimed_by']}>**. You receive **100** 💎!", ephemeral=True)
             self.user_data.setdefault(user_id, {}).setdefault('coins', 0)
             self.user_data[user_id]['coins'] += 100
         else:
@@ -36,11 +36,8 @@ class ClaimButton(discord.ui.Button):
             self.user_collections.setdefault(user_id, []).append(self.card)
             await interaction.response.send_message(f"You have claimed **{self.card['name']}**!", ephemeral=True)
             embed = discord.Embed(title=self.card['name'], description=self.card['description'], color=discord.Color.red())
-            embed.add_field(name="Rank", value=self.card['rank'])
-            embed.add_field(name="Value", value=f"{self.card['value']} 💎")
-            embed.add_field(name="Claimed", value=f"<@{user_id}>")
+            embed.add_field(name=f"{self.card['rank']} • {self.card['value']} 💎", value="")
             embed.set_image(url=self.card['image_urls'][0])
-
             user = await interaction.guild.fetch_member(user_id)
             claimed_by = f'Claimed by {user.display_name}'
             profile_url = user.avatar.url if user.avatar else user.default_avatar.url
@@ -74,10 +71,10 @@ class GemButton(discord.ui.Button):
 
         self.user_data[user_id]['last_gem_time'] = str(datetime.utcnow())
         self.user_data.setdefault(user_id, {}).setdefault('coins', 0)
-        self.user_data[user_id]['coins'] += self.card['value']
+        self.user_data[user_id]['coins'] += self.card['value']//10
 
         save_data(self.guild_id, self.cards, self.user_collections, self.user_data)
-        await interaction.response.send_message(f"You received {self.card['value']} coins from the gem!", ephemeral=True)
+        await interaction.response.send_message(f"You received **{self.card['value']//10}** coins from the gem 💎!", ephemeral=True)
 
 class Paginator(discord.ui.View):
     def __init__(self, guild_id, collection):
@@ -96,8 +93,7 @@ class Paginator(discord.ui.View):
     async def create_embed(self, ctx_or_interaction):
         card = self.collection[self.current_page]
         embed = discord.Embed(title=card["name"], description=card["description"])
-        embed.add_field(name="Rank", value=card["rank"])
-        embed.add_field(name="Value", value=f'{card["value"]} 💎')
+        embed.add_field(name=f"{self.card['rank']} • {self.card['value']} 💎", value="")
         embed.set_image(url=card["image_urls"][0])
         embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
@@ -141,8 +137,7 @@ class GlobalPaginator(discord.ui.View):
     async def create_embed(self, ctx_or_interaction):
         card = self.collection[self.current_page]
         embed = discord.Embed(title=card["name"], description=card["description"])
-        embed.add_field(name="Rank", value=card["rank"])
-        embed.add_field(name="Value", value=f'{card["value"]} 💎')
+        embed.add_field(name=f"{self.card['rank']} • {self.card['value']} 💎", value="")
         embed.set_image(url=card["image_urls"][0])
 
         if card["claimed_by"]:
@@ -185,8 +180,7 @@ class ImagePaginator(discord.ui.View):
     async def create_embed(self, ctx_or_interaction):
         image_url = self.card["image_urls"][self.current_image]
         embed = discord.Embed(title=self.card["name"], description=self.card["description"])
-        embed.add_field(name="Rank", value=self.card["rank"])
-        embed.add_field(name="Value", value=f'{self.card["value"]} 💎')
+        embed.add_field(name=f"{self.card['rank']} • {self.card['value']} 💎", value="")
 
         if self.card["claimed_by"]:
             user = await ctx_or_interaction.guild.fetch_member(self.card["claimed_by"])
