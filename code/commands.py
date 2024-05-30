@@ -506,7 +506,7 @@ def setup_commands(bot):
 
         last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
         print(datetime.utcnow() - last_claim_time)
-        if datetime.utcnow() - last_claim_time > timedelta(hours=3):
+        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
             pass
             await ctx.send("Your still have a claim left... You cannot use this command right now")
         else:
@@ -524,7 +524,7 @@ def setup_commands(bot):
             await ctx.send("Your claim has been reset!")
 
     @bot.command(name="trade")
-    async def trade(ctx, user: discord.User, card_name: str):
+    async def trade(ctx, user: discord.User, *, args: str):
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         user_collections = guild_data[guild_id][1]
@@ -532,44 +532,51 @@ def setup_commands(bot):
         sender_id = str(sender.id)
         receiver_id = str(user.id)
 
-        sender_card = next((c for c in user_collections.get(sender_id, []) if c['name'].lower() == card_name.lower()), None)
+        sender_cards = [name.strip() for name in args.split(" $ ")]
 
-        if not sender_card:
-            await ctx.send(f'You do not have the card {card_name}.')
-            return
+        # Vérifier si l'expéditeur possède toutes les cartes
+        for card_name in sender_cards:
+            if not any(c for c in user_collections.get(sender_id, []) if c['name'].lower() == card_name.lower()):
+                await ctx.send(f'You do not have the card {card_name}.')
+                return
 
-        await ctx.send(f'{user.mention}, {sender.display_name} wants to trade {card_name}. What card will you trade in return?')
+        await ctx.send(f'{user.mention}, {sender.display_name} wants to trade {", ".join(sender_cards)}. What card(s) will you trade in return? (Reply with card names separated by $)')
 
         def check(msg):
             return msg.author == user and msg.channel == ctx.channel
 
         try:
-            msg = await bot.wait_for('message', check=check, timeout=30)
-            receiver_card_name = msg.content
-            receiver_card = next((c for c in user_collections.get(receiver_id, []) if c['name'].lower() == receiver_card_name.lower()), None)
+            msg = await bot.wait_for('message', check=check, timeout=60)
+            receiver_cards = [name.strip() for name in msg.content.split(" $ ")]
 
-            if not receiver_card:
-                await ctx.send(f'{user.display_name} does not have the card {receiver_card_name}.')
-                return
+            # Vérifier si le récepteur possède toutes les cartes
+            for card_name in receiver_cards:
+                if not any(c for c in user_collections.get(receiver_id, []) if c['name'].lower() == card_name.lower()):
+                    await ctx.send(f'{user.display_name} does not have the card {card_name}.')
+                    return
 
-            await ctx.send(f'{sender.mention}, {user.display_name} wants to trade {receiver_card_name} for {card_name}. Do you accept? (yes/no)')
+            await ctx.send(f'{sender.mention}, {user.display_name} wants to trade {", ".join(receiver_cards)} for {", ".join(sender_cards)}. Do you accept? (yes/no)')
 
             def check_confirm(msg):
                 return msg.author == sender and msg.channel == ctx.channel and msg.content.lower() in ['yes', 'y', 'no', 'n']
 
             try:
-                confirm_msg = await bot.wait_for('message', check=check_confirm, timeout=30)
+                confirm_msg = await bot.wait_for('message', check=check_confirm, timeout=60)
                 if confirm_msg.content.lower() in ['yes', 'y']:
-                    user_collections[sender_id].remove(sender_card)
-                    user_collections[receiver_id].remove(receiver_card)
-                    user_collections[sender_id].append(receiver_card)
-                    user_collections[receiver_id].append(sender_card)
+                    for card_name in sender_cards:
+                        sender_card = next(c for c in user_collections[sender_id] if c['name'].lower() == card_name.lower())
+                        user_collections[sender_id].remove(sender_card)
+                        sender_card['claimed_by'] = receiver_id
+                        user_collections[receiver_id].append(sender_card)
 
-                    sender_card['claimed_by'] = receiver_id
-                    receiver_card['claimed_by'] = sender_id
+                    for card_name in receiver_cards:
+                        receiver_card = next(c for c in user_collections[receiver_id] if c['name'].lower() == card_name.lower())
+                        user_collections[receiver_id].remove(receiver_card)
+                        receiver_card['claimed_by'] = sender_id
+                        user_collections[sender_id].append(receiver_card)
 
                     save_data(guild_id, *guild_data[guild_id])
-                    await ctx.send(f'Trade successful! {sender.display_name} traded {card_name} with {user.display_name} for {receiver_card_name}.')
+                    await ctx.send(f'Trade successful! {sender.display_name} traded {", ".join(sender_cards)} with {user.display_name} for {", ".join(receiver_cards)}.')
                 else:
                     await ctx.send('Trade cancelled.')
             except asyncio.TimeoutError:
@@ -577,6 +584,71 @@ def setup_commands(bot):
 
         except asyncio.TimeoutError:
             await ctx.send('Trade response timed out.')
+
+    @bot.tree.command(name="trade", description="Trade cards with another user")
+    @app_commands.describe(user="The user to trade with", cards="The cards you want to trade, separated by $")
+    async def trade_app(interaction: discord.Interaction, user: discord.User, cards: str):
+        guild_id = str(interaction.guild.id)
+        initialize_guild(guild_id)
+        user_collections = guild_data[guild_id][1]
+        sender = interaction.user
+        sender_id = str(sender.id)
+        receiver_id = str(user.id)
+
+        sender_cards = [name.strip() for name in cards.split(" $ ")]
+
+        # Vérifier si l'expéditeur possède toutes les cartes
+        for card_name in sender_cards:
+            if not any(c for c in user_collections.get(sender_id, []) if c['name'].lower() == card_name.lower()):
+                await interaction.response.send_message(f'You do not have the card {card_name}.', ephemeral=True)
+                return
+
+        await interaction.response.send_message(f'{user.mention}, {sender.display_name} wants to trade {", ".join(sender_cards)}. What card(s) will you trade in return? (Reply with card names separated by $)', ephemeral=True)
+
+        def check(msg):
+            return msg.author == user and msg.channel == interaction.channel
+
+        try:
+            msg = await bot.wait_for('message', check=check, timeout=60)
+            receiver_cards = [name.strip() for name in msg.content.split(" $ ")]
+
+            # Vérifier si le récepteur possède toutes les cartes
+            for card_name in receiver_cards:
+                if not any(c for c in user_collections.get(receiver_id, []) if c['name'].lower() == card_name.lower()):
+                    await interaction.channel.send(f'{user.display_name} does not have the card {card_name}.')
+                    return
+
+            await interaction.channel.send(f'{sender.mention}, {user.display_name} wants to trade {", ".join(receiver_cards)} for {", ".join(sender_cards)}. Do you accept? (yes/no)')
+
+            def check_confirm(msg):
+                return msg.author == sender and msg.channel == interaction.channel and msg.content.lower() in ['yes', 'y', 'no', 'n']
+
+            try:
+                confirm_msg = await bot.wait_for('message', check=check_confirm, timeout=60)
+                if confirm_msg.content.lower() in ['yes', 'y']:
+                    for card_name in sender_cards:
+                        sender_card = next(c for c in user_collections[sender_id] if c['name'].lower() == card_name.lower())
+                        user_collections[sender_id].remove(sender_card)
+                        sender_card['claimed_by'] = receiver_id
+                        user_collections[receiver_id].append(sender_card)
+
+                    for card_name in receiver_cards:
+                        receiver_card = next(c for c in user_collections[receiver_id] if c['name'].lower() == card_name.lower())
+                        user_collections[receiver_id].remove(receiver_card)
+                        receiver_card['claimed_by'] = sender_id
+                        user_collections[sender_id].append(receiver_card)
+
+                    save_data(guild_id, *guild_data[guild_id])
+                    await interaction.channel.send(f'Trade successful! {sender.display_name} traded {", ".join(sender_cards)} with {user.display_name} for {", ".join(receiver_cards)}.')
+                else:
+                    await interaction.channel.send('Trade cancelled.')
+            except asyncio.TimeoutError:
+                await interaction.channel.send('Trade confirmation timed out.')
+
+        except asyncio.TimeoutError:
+            await interaction.channel.send('Trade response timed out.')
+
+
 
     @bot.command(name="download_data")
     @is_admin()
