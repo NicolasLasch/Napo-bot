@@ -118,34 +118,40 @@ class GlobalPaginator(discord.ui.View):
         self.current_page = 0
 
     async def send_initial_message(self, ctx_or_interaction):
-        embed = self.create_embed()
+        embed = await self.create_embed(ctx_or_interaction)
         if isinstance(ctx_or_interaction, commands.Context):
             await ctx_or_interaction.send(embed=embed, view=self)
         else:
             await ctx_or_interaction.response.send_message(embed=embed, view=self)
 
-    def create_embed(self):
+    async def create_embed(self, ctx_or_interaction):
         card = self.collection[self.current_page]
         embed = discord.Embed(title=card["name"], description=card["description"])
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
         embed.set_image(url=card["image_urls"][0])
-        claimed_by = "Not claimed" if not card["claimed_by"] else f'Claimed by <@{card["claimed_by"]}>'
-        embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)} • {claimed_by}')
+        
+        if card["claimed_by"]:
+            user = await ctx_or_interaction.guild.fetch_member(card["claimed_by"])
+            claimed_by = f'Claimed by {user.display_name}'
+            profile_url = user.avatar.url if user.avatar else user.default_avatar.url
+            embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)} • {claimed_by}', icon_url=profile_url)
+        else:
+            embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)} • Not claimed')
+        
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
-
 
     @discord.ui.button(label="⬅️", style=discord.ButtonStyle.secondary)
     async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page - 1) % len(self.collection)
-        embed = self.create_embed()
+        embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="➡️", style=discord.ButtonStyle.secondary)
     async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page + 1) % len(self.collection)
-        embed = self.create_embed()
+        embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
 class ImagePaginator(discord.ui.View):

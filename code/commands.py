@@ -474,7 +474,9 @@ def setup_commands(bot):
         last_daily_time = datetime.fromisoformat(user_data[user_id].get('last_daily_time', '1970-01-01T00:00:00'))
         if datetime.utcnow() - last_daily_time < timedelta(hours=20):
             remaining_time = timedelta(hours=20) - (datetime.utcnow() - last_daily_time)
-            await ctx.send(f"You can use !daily again in {remaining_time}.")
+            hours, remainder = divmod(remaining_time.seconds, 3600)
+            minutes, _ = divmod(remainder, 60)
+            await ctx.send(f"You can use !daily again in **{hours}h {minutes}m**.")
             return
 
         coins_received = random.randint(100, 400)
@@ -491,16 +493,26 @@ def setup_commands(bot):
         cards, user_collections, user_data = guild_data[guild_id]
         initialize_user(guild_id, user_id)
 
-        last_daily_reset_time = datetime.fromisoformat(user_data[user_id].get('last_daily_reset_time', '1970-01-01T00:00:00'))
-        if datetime.utcnow() - last_daily_reset_time < timedelta(hours=20):
-            remaining_time = timedelta(hours=20) - (datetime.utcnow() - last_daily_reset_time)
-            await ctx.send(f"You can use !dailyreset again in {remaining_time}.")
-            return
+        if 'last_claim_time' not in user_id:
+            user_id['last_claim_time'] = str(datetime.utcnow() - timedelta(hours=4))
 
-        user_data[user_id]['last_claim_time'] = (datetime.utcnow() - timedelta(hours=3)).isoformat()
-        user_data[user_id]['last_daily_reset_time'] = datetime.utcnow().isoformat()
-        save_data(guild_id, cards, user_collections, user_data)
-        await ctx.send("Your claim has been reset!")
+        last_claim_time = datetime.fromisoformat(self.user_data[user_id]['last_claim_time'])
+        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
+            pass
+            await ctx.send("Your still have a claim left... You cannot use this command right now")
+        else:
+            last_daily_reset_time = datetime.fromisoformat(user_data[user_id].get('last_daily_reset_time', '1970-01-01T00:00:00'))
+            if datetime.utcnow() - last_daily_reset_time < timedelta(hours=20):
+                remaining_time = timedelta(hours=20) - (datetime.utcnow() - last_daily_reset_time)
+                hours, remainder = divmod(remaining_time.seconds, 3600)
+                minutes, _ = divmod(remainder, 60)
+                await ctx.send(f"You can use !dailyreset again in **{hours}h {minutes}m**.")
+                return
+
+            user_data[user_id]['last_claim_time'] = (datetime.utcnow() - timedelta(hours=3)).isoformat()
+            user_data[user_id]['last_daily_reset_time'] = datetime.utcnow().isoformat()
+            save_data(guild_id, cards, user_collections, user_data)
+            await ctx.send("Your claim has been reset!")
 
     @bot.command(name="trade")
     async def trade(ctx, user: discord.User, card_name: str):
