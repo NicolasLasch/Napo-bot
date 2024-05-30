@@ -334,32 +334,40 @@ def setup_commands(bot):
         await paginator.send_initial_message(interaction)
 
     @bot.command(name="im")
-    async def im(ctx, name: str):
+    async def im(ctx, *, args: str):
         """Command to display detailed information about a card with image navigation."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         cards = guild_data[guild_id][0]
-        card = next((c for c in cards if c['name'].lower() == name.lower()), None)
+        
+        # Split the arguments on the '$' character
+        parts = args.split(" $ ")
+        character_name = parts[0].strip()
+        page_number = int(parts[1].strip()) if len(parts) > 1 and parts[1].strip().isdigit() else 1
+
+        card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
         if not card:
             await ctx.send('Card not found.')
             return
 
-        paginator = ImagePaginator(guild_id, card)
+        paginator = ImagePaginator(guild_id, card, page_number - 1)
         await paginator.send_initial_message(ctx)
 
     @bot.tree.command(name="im", description="Display detailed information about a card with image navigation")
-    @app_commands.describe(name="Character name")
-    async def im_app(interaction: discord.Interaction, name: str):
+    @app_commands.describe(name="Character name", page_number="Page number (optional)")
+    async def im_app(interaction: discord.Interaction, name: str, page_number: int = 1):
         guild_id = str(interaction.guild.id)
         initialize_guild(guild_id)
         cards = guild_data[guild_id][0]
+
         card = next((c for c in cards if c['name'].lower() == name.lower()), None)
         if not card:
             await interaction.response.send_message('Card not found.', ephemeral=True)
             return
 
-        paginator = ImagePaginator(guild_id, card)
+        paginator = ImagePaginator(guild_id, card, page_number - 1)
         await paginator.send_initial_message(interaction)
+
     
     @bot.command(name="ai")
     @is_admin()
