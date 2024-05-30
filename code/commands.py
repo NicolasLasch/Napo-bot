@@ -4,7 +4,7 @@ from discord import app_commands
 import random
 import asyncio
 from datetime import datetime, timedelta
-from utils import save_data, load_data, rank_sort_key
+from utils import save_data, load_data, rank_sort_key, get_time_until_next_reset
 from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator
 import os
 import sys
@@ -347,55 +347,55 @@ def setup_commands(bot):
         await paginator.send_initial_message(interaction)
 
     @bot.command(name="mu")
-    async def mu(ctx, member: discord.Member = None):
-        """Command to check the remaining time before claim reset and if a claim has been made."""
+    async def mu(ctx):
+        """Command to check the remaining time before the next global claim reset and if the user can claim."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
-        if member is None:
-            member = ctx.author
-        user_id = str(member.id)
+        user_id = str(ctx.author.id)
         user_data = guild_data[guild_id][2]
         initialize_user(guild_id, user_id)
 
-        if 'last_claim_time' not in user_data.get(user_id, {}):
-            await ctx.send(f"{member.display_name} hasn't claimed any card yet.")
-            return
+        time_until_reset = get_time_until_next_reset()
+        hours, remainder = divmod(time_until_reset.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
 
-        last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
-        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
-            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
-            hours, remainder = divmod(remaining_time.seconds, 3600)
-            minutes, _ = divmod(remainder, 60)
-            await ctx.send(f"{member.display_name} can claim again in **{hours}h {minutes}m**.")
+        if 'last_claim_time' in user_data.get(user_id, {}):
+            last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
+            if datetime.utcnow() - last_claim_time < timedelta(hours=3):
+                can_claim = False
+            else:
+                can_claim = True
         else:
-            await ctx.send(f"{member.display_name} can claim now!")
+            can_claim = True
 
-    @bot.tree.command(name="mu", description="Check the remaining time before claim reset and if a claim has been made")
-    async def mu_app(interaction: discord.Interaction, member: discord.Member = None):
-        """Slash command to check the remaining time before claim reset and if a claim has been made."""
+        claim_status = "You can claim now!" if can_claim else f"You can claim again in **{hours}h {minutes}m**."
+        await ctx.send(f"The next global claim reset is in **{hours}h {minutes}m**.\n{claim_status}")
+
+    @bot.tree.command(name="mu", description="Check the remaining time before the next global claim reset and if the user can claim")
+    async def mu_app(interaction: discord.Interaction):
+        """Slash command to check the remaining time before the next global claim reset and if the user can claim."""
         guild_id = str(interaction.guild.id)
         initialize_guild(guild_id)
-        if member is None:
-            member = interaction.user
-        user_id = str(member.id)
+        user_id = str(interaction.user.id)
         user_data = guild_data[guild_id][2]
         initialize_user(guild_id, user_id)
 
-        if 'last_claim_time' not in user_data.get(user_id, {}):
-            await interaction.response.send_message(f"{member.display_name} hasn't claimed any card yet.", ephemeral=True)
-            return
+        time_until_reset = get_time_until_next_reset()
+        hours, remainder = divmod(time_until_reset.seconds, 3600)
+        minutes, _ = divmod(remainder, 60)
 
-        last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
-        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
-            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
-            hours, remainder = divmod(remaining_time.seconds, 3600)
-            minutes, _ = divmod(remainder, 60)
-            await interaction.response.send_message(f"{member.display_name} can claim again in **{hours}h {minutes}m**.", ephemeral=True)
+        if 'last_claim_time' in user_data.get(user_id, {}):
+            last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
+            if datetime.utcnow() - last_claim_time < timedelta(hours=3):
+                can_claim = False
+            else:
+                can_claim = True
         else:
-            await interaction.response.send_message(f"{member.display_name} can claim now!", ephemeral=True)
+            can_claim = True
 
+        claim_status = "You can claim now!" if can_claim else f"You can claim again in **{hours}h {minutes}m**."
+        await interaction.response.send_message(f"The next global claim reset is in **{hours}h {minutes}m**.\n{claim_status}", ephemeral=True)
 
-    
     @bot.command(name="im")
     async def im(ctx, *, args: str):
         """Command to display detailed information about a card."""

@@ -14,18 +14,11 @@ class ClaimButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
-        if 'last_claim_time' not in self.user_data.get(user_id, {}):
-            self.user_data.setdefault(user_id, {})['last_claim_time'] = str(datetime.utcnow() - timedelta(hours=4))
+        time_until_reset = get_time_until_next_reset()
 
-        last_claim_time = datetime.fromisoformat(self.user_data[user_id]['last_claim_time'])
-        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
-            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_claim_time)
-            hours, remainder = divmod(remaining_time.seconds, 3600)
-            minutes, _ = divmod(remainder, 60)
-            await interaction.response.send_message(f"You can only claim once every 3 hours. Please wait **{hours}h {minutes}m**.", ephemeral=True)
+        if time_until_reset > timedelta(hours=3):
+            await interaction.response.send_message(f"You can only claim once every 3 hours. The next reset is in **{time_until_reset.seconds // 3600}h {time_until_reset.seconds % 3600 // 60}m**.", ephemeral=True)
             return
-
-        self.user_data[user_id]['last_claim_time'] = str(datetime.utcnow())
 
         if self.card['claimed_by']:
             await interaction.response.send_message(f"This card is already claimed by **<@{self.card['claimed_by']}>**. You receive **100** 💎!", ephemeral=True)
@@ -58,15 +51,11 @@ class GemButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
-        if 'last_gem_time' not in self.user_data.get(user_id, {}):
-            self.user_data.setdefault(user_id, {})['last_gem_time'] = str(datetime.utcnow() - timedelta(hours=4))
+        user_id = str(interaction.user.id)
+        time_until_reset = get_time_until_next_reset()
 
-        last_gem_time = datetime.fromisoformat(self.user_data[user_id]['last_gem_time'])
-        if datetime.utcnow() - last_gem_time < timedelta(hours=3):
-            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_gem_time)
-            hours, remainder = divmod(remaining_time.seconds, 3600)
-            minutes, _ = divmod(remainder, 60)
-            await interaction.response.send_message(f"You can only collect gems once every 3 hours. Please wait **{hours}h {minutes}m**.", ephemeral=True)
+        if time_until_reset > timedelta(hours=3):
+            await interaction.response.send_message(f"You can only collect gems once every 3 hours. The next reset is in **{time_until_reset.seconds // 3600}h {time_until_reset.seconds % 3600 // 60}m**.", ephemeral=True)
             return
 
         self.user_data[user_id]['last_gem_time'] = str(datetime.utcnow())

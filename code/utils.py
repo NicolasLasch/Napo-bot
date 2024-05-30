@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime, timedelta
 
 DATA_DIR = 'data'
 if not os.path.exists(DATA_DIR):
@@ -50,3 +51,12 @@ def save_data(guild_id, cards, user_collections, user_data):
 def rank_sort_key(card):
     rank_order = {'SS': 0, 'S': 1, 'A': 2, 'B': 3, 'C': 4, 'D': 5, 'E': 6}
     return rank_order.get(card['rank'], 7)
+
+def get_time_until_next_reset():
+    now = datetime.utcnow()
+    next_reset_hour = (now.hour // 3 + 1) * 3
+    next_reset_time = now.replace(hour=next_reset_hour % 24, minute=0, second=0, microsecond=0)
+    if next_reset_hour >= 24:
+        next_reset_time += timedelta(days=1)
+    return next_reset_time - now
+
