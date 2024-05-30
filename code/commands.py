@@ -8,6 +8,7 @@ from utils import save_data, load_data, rank_sort_key
 from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator
 import os
 import sys
+from bot import guild_data
 
 # Define global variables for tracking rolls
 roll_cooldowns = {}
@@ -48,9 +49,15 @@ cards, user_collections, user_data = load_data()
 
 def setup_commands(bot, cards, user_collections, user_data):
 
-    def initialize_user(user_id):
+    def initialize_user(guild_id, user_id):
         if user_id not in user_data:
-            user_data[user_id] = {'coins': 0, 'luck_purchases': 0, 'luck': {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}, 'rolls': max_rolls_per_hour}
+            user_data[user_id] = {
+                'coins': 0,
+                'luck_purchases': 0,
+                'luck': {'SS': 0.005,'S': 0.05,'A': 0.1,'B': 0.2,'C': 0.185,'D': 0.21,'E': 0.25},
+                'rolls': max_rolls_per_hour,
+                'claims': max_claims_per_3_hours
+            }
 
     def get_user_probabilities(user_id):
         initialize_user(user_id)
@@ -154,7 +161,10 @@ def setup_commands(bot, cards, user_collections, user_data):
 
     @bot.command(name="roll")
     async def roll(ctx):
+        guild_id = str(ctx.guild.id)
         user_id = str(ctx.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
         if user_id not in user_data:
             user_data[user_id] = {'coins': 0, 'luck_purchases': 0, 'luck': {'SS': 0.01, 'S': 0.02, 'A': 0.03, 'B': 0.04, 'C': 0.05, 'D': 0.05, 'E': 0.05}, 'rolls': max_rolls_per_hour}
 
@@ -357,23 +367,24 @@ def setup_commands(bot, cards, user_collections, user_data):
 
     @bot.command(name="balance")
     async def balance(ctx):
-        """Command to display the user's current balance."""
+        guild_id = str(ctx.guild.id)
         user_id = str(ctx.author.id)
-        if user_id not in user_data:
-            user_data[user_id] = {'coins': 0}
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
 
         coins = user_data[user_id].get('coins', 0)
         await ctx.send(f'You have {coins} coins.')
 
+
     @bot.tree.command(name="balance", description="Display your current balance")
     async def balance_app(interaction: discord.Interaction):
-        """Slash command to display the user's current balance."""
-        user_id = str(interaction.user.id)
-        if user_id not in user_data:
-            user_data[user_id] = {'coins': 0}
+        guild_id = str(interaction.guild.id)
+        user_id = str(interaction.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
 
         coins = user_data[user_id].get('coins', 0)
-        await interaction.response.send_message(f'You have {coins} coins.', ephemeral=True)
+        await interaction.send(f'You have {coins} coins.')
 
     @bot.command(name="trade")
     async def trade(ctx, user: discord.User, card_name: str):
@@ -429,39 +440,43 @@ def setup_commands(bot, cards, user_collections, user_data):
 
     @bot.command(name="luck")
     async def luck(ctx):
-        """Command to display the user's current luck percentages."""
+        guild_id = str(ctx.guild.id)
         user_id = str(ctx.author.id)
-        initialize_user(user_id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
 
-        probabilities = get_user_probabilities(user_id)
+        probabilities = get_user_probabilities(guild_id, user_id)
         embed = discord.Embed(title="Your Luck Percentages")
         for rank, chance in probabilities.items():
             embed.add_field(name=rank, value=f"{chance:.2%}")
         await ctx.send(embed=embed)
 
+
     @bot.tree.command(name="luck", description="Display your current luck percentages")
     async def luck_app(interaction: discord.Interaction):
-        user_id = str(interaction.user.id)
-        initialize_user(user_id)
+        guild_id = str(interaction.guild.id)
+        user_id = str(interaction.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
 
-        probabilities = get_user_probabilities(user_id)
+        probabilities = get_user_probabilities(guild_id, user_id)
         embed = discord.Embed(title="Your Luck Percentages")
         for rank, chance in probabilities.items():
             embed.add_field(name=rank, value=f"{chance:.2%}")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.send(embed=embed)
 
 
     @bot.command(name="buyluck")
     async def buyluck(ctx):
-        """Command to buy increased luck percentages with progressive cost."""
+        guild_id = str(ctx.guild.id)
         user_id = str(ctx.author.id)
-        initialize_user(user_id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
 
         user_info = user_data[user_id]
         coins = user_info['coins']
         luck_purchases = user_info['luck_purchases']
 
-        # Calculate cost based on the number of purchases
         cost = 500 * (2 ** luck_purchases)
         if luck_purchases >= 5:
             cost = 500 * (2 ** 5) + 2000 * (luck_purchases - 5)
@@ -476,26 +491,27 @@ def setup_commands(bot, cards, user_collections, user_data):
         for rank in user_info['luck']:
             user_info['luck'][rank] += 0.01
 
-        save_data(cards, user_collections, user_data)
+        save_data(guild_id, cards, user_collections, user_data)
         next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
         await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
 
     @bot.tree.command(name="buyluck", description="Buy increased luck percentages with progressive cost")
     async def buyluck_app(interaction: discord.Interaction):
-        user_id = str(interaction.user.id)
-        initialize_user(user_id)
+        guild_id = str(interaction.guild.id)
+        user_id = str(interaction.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
 
         user_info = user_data[user_id]
         coins = user_info['coins']
         luck_purchases = user_info['luck_purchases']
 
-        # Calculate cost based on the number of purchases
         cost = 500 * (2 ** luck_purchases)
         if luck_purchases >= 5:
             cost = 500 * (2 ** 5) + 2000 * (luck_purchases - 5)
 
         if coins < cost:
-            await interaction.response.send_message(f"You don't have enough coins to buy luck. You need {cost} coins.", ephemeral=True)
+            await interaction.send(f"You don't have enough coins to buy luck. You need {cost} coins.")
             return
 
         user_info['coins'] -= cost
@@ -504,10 +520,48 @@ def setup_commands(bot, cards, user_collections, user_data):
         for rank in user_info['luck']:
             user_info['luck'][rank] += 0.01
 
-        save_data(cards, user_collections, user_data)
+        save_data(guild_id, cards, user_collections, user_data)
         next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
-        await interaction.response.send_message(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.", ephemeral=True)
+        await interaction.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
 
+    @bot.command(name="daily")
+    async def daily(ctx):
+        guild_id = str(ctx.guild.id)
+        user_id = str(ctx.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
+
+        last_daily_time = datetime.fromisoformat(user_data[user_id].get('last_daily_time', '1970-01-01T00:00:00'))
+        if datetime.utcnow() - last_daily_time < timedelta(hours=20):
+            remaining_time = timedelta(hours=20) - (datetime.utcnow() - last_daily_time)
+            await ctx.send(f"You can use !daily again in {remaining_time}.")
+            return
+
+        coins_received = random.randint(100, 400)
+        user_data[user_id]['coins'] += coins_received
+        user_data[user_id]['last_daily_time'] = datetime.utcnow().isoformat()
+        save_data(guild_id, cards, user_collections, user_data)
+        await ctx.send(f"You received {coins_received} coins!")
+
+    @bot.command(name="dailyreset")
+    async def dailyreset(ctx):
+        guild_id = str(ctx.guild.id)
+        user_id = str(ctx.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
+
+        last_daily_reset_time = datetime.fromisoformat(user_data[user_id].get('last_daily_reset_time', '1970-01-01T00:00:00'))
+        if datetime.utcnow() - last_daily_reset_time < timedelta(hours=20):
+            remaining_time = timedelta(hours=20) - (datetime.utcnow() - last_daily_reset_time)
+            await ctx.send(f"You can use !dailyreset again in {remaining_time}.")
+            return
+
+        user_data[user_id]['last_claim_time'] = (datetime.utcnow() - timedelta(hours=3)).isoformat()
+        user_data[user_id]['last_daily_reset_time'] = datetime.utcnow().isoformat()
+        save_data(guild_id, cards, user_collections, user_data)
+        await ctx.send("Your claim has been reset!")
+
+    
     @bot.command(name="download_data")
     @is_admin()
     async def download_data(ctx):

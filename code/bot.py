@@ -14,19 +14,31 @@ intents.message_content = True  # Ensure message content intent is enabled
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-cards, user_collections, user_data = load_data()
+guild_data = {}
+for guild in bot.guilds:
+    guild_data[guild.id] = load_data(guild.id)
+
+@bot.event
+async def on_guild_join(guild):
+    guild_data[guild.id] = load_data(guild.id)
+
 
 @tasks.loop(minutes=1)
 async def reset_rolls():
     now = datetime.utcnow()
-    next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-    await asyncio.sleep((next_hour - now).total_seconds())
-    global roll_cooldowns
+    next_reset = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+    await asyncio.sleep((next_reset - now).total_seconds())
+    global roll_cooldowns, claim_cooldowns
     roll_cooldowns = {}
+    claim_cooldowns = {}
     for guild in bot.guilds:
         for member in guild.members:
             if not member.bot:
                 user_data[str(member.id)]['rolls'] = 5
+                user_data[str(member.id)]['claims'] = 1
+
+setup_commands(bot, cards, user_collections, user_data)
+
 
 @bot.event
 async def on_ready():
