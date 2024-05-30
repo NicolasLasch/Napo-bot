@@ -421,47 +421,6 @@ def setup_commands(bot, cards, user_collections, user_data):
         except asyncio.TimeoutError:
             await ctx.send('Trade response timed out.')
 
-
-    @bot.tree.command(name="trade", description="Trade cards with another user")
-    @app_commands.describe(user="User to trade with", card_name="Your card name", trade_card_name="Their card name")
-    async def trade_app(interaction: discord.Interaction, user: discord.User, card_name: str, trade_card_name: str):
-        """Slash command to trade cards with another user."""
-        sender = interaction.user
-        sender_id = str(sender.id)
-        receiver_id = str(user.id)
-
-        if sender_id not in user_collections or not user_collections[sender_id]:
-            await interaction.response.send_message('You have no cards to trade.', ephemeral=True)
-            return
-
-        if receiver_id not in user_collections or not user_collections[receiver_id]:
-            await interaction.response.send_message(f'{user.display_name} has no cards to trade.', ephemeral=True)
-            return
-
-        sender_card = next((c for c in user_collections[sender_id] if c['name'].lower() == card_name.lower()), None)
-        receiver_card = next((c for c in user_collections[receiver_id] if c['name'].lower() == trade_card_name.lower()), None)
-
-        if not sender_card:
-            await interaction.response.send_message(f'You do not have the card {card_name}.', ephemeral=True)
-            return
-
-        if not receiver_card:
-            await interaction.response.send_message(f'{user.display_name} does not have the card {trade_card_name}.', ephemeral=True)
-            return
-
-        # Perform the trade
-        user_collections[sender_id].remove(sender_card)
-        user_collections[receiver_id].remove(receiver_card)
-        user_collections[sender_id].append(receiver_card)
-        user_collections[receiver_id].append(sender_card)
-
-        sender_card['claimed_by'] = receiver_id
-        receiver_card['claimed_by'] = sender_id
-
-        save_data(cards, user_collections, user_data)
-        await interaction.response.send_message(f'Trade successful! {sender.display_name} traded {card_name} with {user.display_name} for {trade_card_name}.', ephemeral=True)
-
-
     @bot.command(name="luck")
     async def luck(ctx):
         """Command to display the user's current luck percentages."""
@@ -567,8 +526,16 @@ def setup_commands(bot, cards, user_collections, user_data):
         await cards_file.save('cards.json')
         await collections_file.save('collections.json')
         await user_data_file.save('user_data.json')
+        
+        # Reload the data
         global cards, user_collections, user_data
         cards, user_collections, user_data = load_data()
+        
+        # Debug print statements to verify data loading
+        print(f'Loaded {len(cards)} cards')
+        print(f'Loaded {len(user_collections)} user collections')
+        print(f'Loaded {len(user_data)} user data entries')
+
         await ctx.send("Data uploaded and loaded successfully!")
 
     @bot.tree.command(name="upload_data", description="Upload the current data as JSON files")
@@ -579,6 +546,15 @@ def setup_commands(bot, cards, user_collections, user_data):
         await cards_file.save('cards.json')
         await collections_file.save('collections.json')
         await user_data_file.save('user_data.json')
+        
+        # Reload the data
         global cards, user_collections, user_data
         cards, user_collections, user_data = load_data()
+        
+        # Debug print statements to verify data loading
+        print(f'Loaded {len(cards)} cards')
+        print(f'Loaded {len(user_collections)} user collections')
+        print(f'Loaded {len(user_data)} user data entries')
+
         await interaction.response.send_message("Data uploaded and loaded successfully!", ephemeral=True)
+
