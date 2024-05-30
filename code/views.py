@@ -93,7 +93,7 @@ class Paginator(discord.ui.View):
     async def create_embed(self, ctx_or_interaction):
         card = self.collection[self.current_page]
         embed = discord.Embed(title=card["name"], description=card["description"])
-        embed.add_field(name=f"{self.card['rank']} • {self.card['value']} 💎", value="")
+        embed.add_field(name=f"{card['rank']} • {card['value']} 💎", value="")
         embed.set_image(url=card["image_urls"][0])
         embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
