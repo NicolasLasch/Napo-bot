@@ -18,7 +18,7 @@ cards, user_collections, user_data = load_data()
 
 @tasks.loop(minutes=1)
 async def reset_rolls():
-    now = datetime.datetime.now(datetime.UTC)
+    now = datetime.utcnow()
     next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
     await asyncio.sleep((next_hour - now).total_seconds())
     global roll_cooldowns

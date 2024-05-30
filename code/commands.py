@@ -6,6 +6,8 @@ import asyncio
 from datetime import datetime, timedelta
 from utils import save_data, load_data, rank_sort_key
 from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator
+import os
+import sys
 
 # Define global variables for tracking rolls
 roll_cooldowns = {}
@@ -30,6 +32,10 @@ def is_admin():
     async def predicate(ctx):
         return ctx.author.guild_permissions.administrator
     return commands.check(predicate)
+
+def reload_bot():
+    os.execv(sys.executable, ['python'] + sys.argv)
+
 
 
 def get_cooldown(bucket):
@@ -537,6 +543,9 @@ def setup_commands(bot, cards, user_collections, user_data):
         print(f'Loaded {len(user_data)} user data entries')
 
         await ctx.send("Data uploaded and loaded successfully!")
+        
+        # Restart the bot to apply the new data
+        reload_bot()
 
     @bot.tree.command(name="upload_data", description="Upload the current data as JSON files")
     @is_admin()
@@ -557,4 +566,8 @@ def setup_commands(bot, cards, user_collections, user_data):
         print(f'Loaded {len(user_data)} user data entries')
 
         await interaction.response.send_message("Data uploaded and loaded successfully!", ephemeral=True)
+        
+        # Restart the bot to apply the new data
+        reload_bot()
+
 
