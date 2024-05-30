@@ -24,7 +24,6 @@ class ClaimButton(discord.ui.Button):
             minutes, _ = divmod(remainder, 60)
             await interaction.response.send_message(f"You can only claim once every 3 hours. Please wait **{hours}h {minutes}m**.", ephemeral=True)
             return
-        
 
         self.user_data[user_id]['last_claim_time'] = str(datetime.utcnow())
 
@@ -41,6 +40,12 @@ class ClaimButton(discord.ui.Button):
             embed.add_field(name="Value", value=f"{self.card['value']} 💎")
             embed.add_field(name="Claimed", value=f"<@{user_id}>")
             embed.set_image(url=self.card['image_urls'][0])
+
+            user = await interaction.guild.fetch_member(user_id)
+            claimed_by = f'Claimed by {user.display_name}'
+            profile_url = user.avatar.url if user.avatar else user.default_avatar.url
+            embed.set_footer(text=claimed_by, icon_url=profile_url)
+
             await interaction.message.edit(embed=embed, view=None)
 
         save_data(self.guild_id, self.cards, self.user_collections, self.user_data)
@@ -82,13 +87,13 @@ class Paginator(discord.ui.View):
         self.current_page = 0
 
     async def send_initial_message(self, ctx_or_interaction):
-        embed = self.create_embed()
+        embed = await self.create_embed(ctx_or_interaction)
         if isinstance(ctx_or_interaction, commands.Context):
             await ctx_or_interaction.send(embed=embed, view=self)
         else:
             await ctx_or_interaction.response.send_message(embed=embed, view=self)
 
-    def create_embed(self):
+    async def create_embed(self, ctx_or_interaction):
         card = self.collection[self.current_page]
         embed = discord.Embed(title=card["name"], description=card["description"])
         embed.add_field(name="Rank", value=card["rank"])
@@ -96,18 +101,27 @@ class Paginator(discord.ui.View):
         embed.set_image(url=card["image_urls"][0])
         embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)}')
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
+
+        if card["claimed_by"]:
+            user = await ctx_or_interaction.guild.fetch_member(card["claimed_by"])
+            claimed_by = f'Claimed by {user.display_name}'
+            profile_url = user.avatar.url if user.avatar else user.default_avatar.url
+            embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)} • {claimed_by}', icon_url=profile_url)
+        else:
+            embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)} • Not claimed')
+
         return embed
 
     @discord.ui.button(label="⬅️", style=discord.ButtonStyle.secondary)
     async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page - 1) % len(self.collection)
-        embed = self.create_embed()
+        embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="➡️", style=discord.ButtonStyle.secondary)
     async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page + 1) % len(self.collection)
-        embed = self.create_embed()
+        embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
 class GlobalPaginator(discord.ui.View):
@@ -130,7 +144,7 @@ class GlobalPaginator(discord.ui.View):
         embed.add_field(name="Rank", value=card["rank"])
         embed.add_field(name="Value", value=f'{card["value"]} 💎')
         embed.set_image(url=card["image_urls"][0])
-        
+
         if card["claimed_by"]:
             user = await ctx_or_interaction.guild.fetch_member(card["claimed_by"])
             claimed_by = f'Claimed by {user.display_name}'
@@ -138,7 +152,7 @@ class GlobalPaginator(discord.ui.View):
             embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)} • {claimed_by}', icon_url=profile_url)
         else:
             embed.set_footer(text=f'{self.current_page + 1}/{len(self.collection)} • Not claimed')
-        
+
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
 
@@ -162,32 +176,38 @@ class ImagePaginator(discord.ui.View):
         self.current_image = 0
 
     async def send_initial_message(self, ctx_or_interaction):
-        embed = self.create_embed()
+        embed = await self.create_embed(ctx_or_interaction)
         if isinstance(ctx_or_interaction, discord.ext.commands.Context):
             await ctx_or_interaction.send(embed=embed, view=self)
         else:
             await ctx_or_interaction.response.send_message(embed=embed, view=self)
 
-    def create_embed(self):
+    async def create_embed(self, ctx_or_interaction):
         image_url = self.card["image_urls"][self.current_image]
         embed = discord.Embed(title=self.card["name"], description=self.card["description"])
         embed.add_field(name="Rank", value=self.card["rank"])
         embed.add_field(name="Value", value=f'{self.card["value"]} 💎')
-        claimed_by = "Not claimed" if not self.card["claimed_by"] else f'Claimed by <@{self.card["claimed_by"]}>'
-        embed.add_field(name="Claimed", value=claimed_by)
+
+        if self.card["claimed_by"]:
+            user = await ctx_or_interaction.guild.fetch_member(self.card["claimed_by"])
+            claimed_by = f'Claimed by {user.display_name}'
+            profile_url = user.avatar.url if user.avatar else user.default_avatar.url
+            embed.set_footer(text=f'{self.current_image + 1}/{len(self.card["image_urls"])} • {claimed_by}', icon_url=profile_url)
+        else:
+            embed.set_footer(text=f'{self.current_image + 1}/{len(self.card["image_urls"])} • Not claimed')
+
         embed.set_image(url=image_url)
-        embed.set_footer(text=f'{self.current_image + 1}/{len(self.card["image_urls"])}')
         embed.color = discord.Color.red() if self.card['claimed_by'] else discord.Color.orange()
         return embed
 
     @discord.ui.button(label="⬅️", style=discord.ButtonStyle.secondary)
     async def previous_image(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_image = (self.current_image - 1) % len(self.card["image_urls"])
-        embed = self.create_embed()
+        embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="➡️", style=discord.ButtonStyle.secondary)
     async def next_image(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_image = (self.current_image + 1) % len(self.card["image_urls"])
-        embed = self.create_embed()
+        embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
