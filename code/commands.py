@@ -219,9 +219,10 @@ def setup_commands(bot):
             return
 
         collection = user_collections[user_id]
-        collection_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in collection[:10]])
+        collection_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in collection])
         embed = discord.Embed(title="Your Collection", description=collection_list)
         await ctx.send(embed=embed)
+
 
     @bot.tree.command(name="mm", description="Display your card collection")
     async def mm_app(interaction: discord.Interaction):
@@ -285,6 +286,7 @@ def setup_commands(bot):
 
         paginator = Paginator(guild_id, collection)
         await paginator.send_initial_message(ctx)
+
 
     @bot.tree.command(name="mmi", description="Display your claimed cards with images")
     async def mmi_app(interaction: discord.Interaction):
