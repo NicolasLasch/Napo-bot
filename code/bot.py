@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from utils import load_data, save_data
 from config import initialize_guild_data, load_guild_data, guild_data
 from commands import setup_commands
+from utils import get_time_until_next_reset
 
 intents = discord.Intents.default()
 intents.messages = True
@@ -31,7 +32,7 @@ async def reset_rolls():
 @tasks.loop(minutes=1)
 async def reset_claim():
     now = datetime.utcnow()
-    next_reset = (now + timedelta(hours=3)).replace(minute=0, second=0, microsecond=0)
+    next_reset = get_time_until_next_reset()
     await asyncio.sleep((next_reset - now).total_seconds())
     global claim_cooldowns
     claim_cooldowns = {}

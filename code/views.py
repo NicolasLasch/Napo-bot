@@ -6,8 +6,8 @@ import random
 
 def get_gem_value():
     probabilities = [0.6, 0.3, 0.1]
-    values = [10, 20, 50]
-    colors = [discord.Color.blue(), discord.Color.green(), discord.Color.red()]
+    values = [100, 200, 350]
+    colors = [discord.ButtonStyle.primary, discord.ButtonStyle.success, discord.ButtonStyle.danger]
     value = random.choices(values, probabilities)[0]
     color = colors[values.index(value)]
     return value, color
@@ -53,12 +53,14 @@ class ClaimButton(discord.ui.Button):
 
 class GemButton(discord.ui.Button):
     def __init__(self, guild_id, card, user_data, user_collections, cards):
-        super().__init__(label="💎", style=discord.ButtonStyle.secondary)
+        gem_value, gem_color = get_gem_value()
+        super().__init__(label="💎", style=gem_color)
         self.guild_id = guild_id
         self.card = card
         self.user_data = user_data
         self.user_collections = user_collections
         self.cards = cards
+        self.gem_value = gem_value
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -79,16 +81,14 @@ class GemButton(discord.ui.Button):
             await interaction.response.send_message(f"This card's gem has already been claimed.", ephemeral=True)
             return
         
-        gem_value, gem_color = get_gem_value()
         self.card['gem_claimed'] = True
-        self.user_data[user_id]['coins'] += gem_value
+        self.user_data[user_id]['coins'] += self.gem_value
         self.user_data[user_id]['last_gem_time'] = now.isoformat()
 
         save_data(self.guild_id, self.cards, self.user_collections, self.user_data)
-        await interaction.response.send_message(f"You received {gem_value} coins from the gem 💎!", ephemeral=True)
+        await interaction.response.send_message(f"You received {self.gem_value} coins from the gem 💎!", ephemeral=True)
         embed = interaction.message.embeds[0]
-        embed.color = gem_color
-        embed.add_field(name="Gem Claimed", value=f"{gem_value} coins received", inline=False)
+        embed.add_field(name="Gem Claimed", value=f"{self.gem_value} coins received", inline=False)
         await interaction.message.edit(embed=embed, view=None)
 
 

@@ -18,13 +18,23 @@ max_claims_per_3_hours = 1
 
 # Define probability distribution
 base_probabilities = {
-    'SS': 0.005,
-    'S': 0.05,
-    'A': 0.1,
-    'B': 0.2,
-    'C': 0.185,
-    'D': 0.21,
-    'E': 0.25
+    'SS': 0.0005,
+    'S': 0.01,
+    'A': 0.07,
+    'B': 0.14,
+    'C': 0.20,
+    'D': 0.25,
+    'E': 0.33
+}
+
+max_increment = {
+    'SS': 0.00005,
+    'S': 0.001,
+    'A': 0.007,
+    'B': 0.014,
+    'C': 0.02,
+    'D': 0.025,
+    'E': 0.033
 }
 
 roll_cooldown = commands.CooldownMapping.from_cooldown(5, 3600, commands.BucketType.user)
@@ -53,7 +63,7 @@ def setup_commands(bot):
             guild_data[guild_id][2][user_id] = {
                 'coins': 0,
                 'luck_purchases': 0,
-                'luck': {'SS': 0.005, 'S': 0.05, 'A': 0.1, 'B': 0.2, 'C': 0.185, 'D': 0.21, 'E': 0.25},
+                'luck': base_probabilities,
                 'rolls': max_rolls_per_hour,
                 'claims': max_claims_per_3_hours
             }
@@ -530,34 +540,46 @@ def setup_commands(bot):
 
 
     @bot.command(name="buyluck")
-    async def buyluck(ctx):
-        guild_id = str(ctx.guild.id)
-        initialize_guild(guild_id)
-        user_id = str(ctx.author.id)
-        cards, user_collections, user_data = guild_data[guild_id]
-        initialize_user(guild_id, user_id)
+async def buyluck(ctx):
+    guild_id = str(ctx.guild.id)
+    initialize_guild(guild_id)
+    user_id = str(ctx.author.id)
+    cards, user_collections, user_data = guild_data[guild_id]
+    initialize_user(guild_id, user_id)
 
-        user_info = user_data[user_id]
-        coins = user_info['coins']
-        luck_purchases = user_info['luck_purchases']
+    user_info = user_data[user_id]
+    coins = user_info['coins']
+    luck_purchases = user_info['luck_purchases']
 
-        cost = 500 * (2 ** luck_purchases)
-        if luck_purchases >= 5:
-            cost = 500 * (2 ** 5) + 2000 * (luck_purchases - 5)
+    cost = 500 * (2 ** luck_purchases)
+    if luck_purchases >= 5:
+        cost = 500 * (2 ** 5) + 2000 * (luck_purchases - 5)
 
-        if coins < cost:
-            await ctx.send(f"You don't have enough coins to buy luck. You need {cost} coins.")
-            return
+    if coins < cost:
+        await ctx.send(f"You don't have enough coins to buy luck. You need {cost} coins.")
+        return
 
-        user_info['coins'] -= cost
-        user_info['luck_purchases'] += 1
+    user_info['coins'] -= cost
+    user_info['luck_purchases'] += 1
 
-        for rank in user_info['luck']:
-            user_info['luck'][rank] += 0.01
+    # Adjust probabilities
+    total_increment = sum(max_increment.values())
+    for rank in base_probabilities:
+        # Increase probabilities for higher ranks
+        if rank in ['SS', 'S', 'A']:
+            user_info['luck'][rank] += max_increment[rank] * (1 / total_increment)
+        # Decrease probabilities for lower ranks
+        elif rank in ['B', 'C', 'D', 'E']:
+            user_info['luck'][rank] -= max_increment[rank] * (1 / total_increment)
+    
+    # Normalize probabilities
+    total = sum(user_info['luck'].values())
+    for rank in user_info['luck']:
+        user_info['luck'][rank] /= total
 
-        save_data(guild_id, cards, user_collections, user_data)
-        next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
-        await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
+    save_data(guild_id, cards, user_collections, user_data)
+    next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
+    await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
 
     @bot.command(name="daily")
     async def daily(ctx):
