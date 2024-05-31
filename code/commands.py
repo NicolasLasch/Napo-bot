@@ -591,7 +591,7 @@ def setup_commands(bot):
         cards, user_collections, user_data = guild_data[guild_id]
         initialize_user(guild_id, user_id)
 
-        if 'claims' not in user_id:
+        if 'claims' not in user_data[user_id]:
             user_data[user_id]['claims'] = 1
             
         if user_data[user_id]['claims'] == 1:

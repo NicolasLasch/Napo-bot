@@ -86,7 +86,10 @@ class GemButton(discord.ui.Button):
 
         save_data(self.guild_id, self.cards, self.user_collections, self.user_data)
         await interaction.response.send_message(f"You received {gem_value} coins from the gem 💎!", ephemeral=True)
-        await interaction.message.edit(embed=discord.Embed(description=f"This gem has been claimed!").set_color(gem_color))
+        embed = interaction.message.embeds[0]
+        embed.color = gem_color
+        embed.add_field(name="Gem Claimed", value=f"{gem_value} coins received", inline=False)
+        await interaction.message.edit(embed=embed, view=None)
 
 
 class Paginator(discord.ui.View):
