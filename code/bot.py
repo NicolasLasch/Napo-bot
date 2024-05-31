@@ -20,14 +20,25 @@ async def reset_rolls():
     now = datetime.utcnow()
     next_reset = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
     await asyncio.sleep((next_reset - now).total_seconds())
-    global roll_cooldowns, claim_cooldowns
+    global roll_cooldowns
     roll_cooldowns = {}
-    claim_cooldowns = {}
     for guild in bot.guilds:
         for member in guild.members:
             if not member.bot:
                 user_data = guild_data[guild.id][2]
                 user_data[str(member.id)]['rolls'] = 5
+
+@tasks.loop(minutes=1)
+async def reset_claim():
+    now = datetime.utcnow()
+    next_reset = (now + timedelta(hours=3)).replace(minute=0, second=0, microsecond=0)
+    await asyncio.sleep((next_reset - now).total_seconds())
+    global claim_cooldowns
+    claim_cooldowns = {}
+    for guild in bot.guilds:
+        for member in guild.members:
+            if not member.bot:
+                user_data = guild_data[guild.id][2]
                 user_data[str(member.id)]['claims'] = 1
 
 @bot.event

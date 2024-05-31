@@ -2,6 +2,16 @@ import discord
 from datetime import datetime, timedelta
 from discord.ext import commands
 from utils import save_data, get_time_until_next_reset
+import random
+
+def get_gem_value():
+    probabilities = [0.6, 0.3, 0.1]
+    values = [10, 20, 50]
+    colors = [discord.Color.blue(), discord.Color.green(), discord.Color.red()]
+    value = random.choices(values, probabilities)[0]
+    color = colors[values.index(value)]
+    return value, color
+
 
 class ClaimButton(discord.ui.Button):
     def __init__(self, guild_id, card, user_data, user_collections, cards):
@@ -51,29 +61,32 @@ class GemButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
-        time_until_reset = get_time_until_next_reset()
+        now = datetime.utcnow()
+        
+        if 'last_gem_time' not in self.user_data[user_id]:
+            self.user_data[user_id]['last_gem_time'] = (now - timedelta(hours=6)).isoformat()
 
-        if time_until_reset > timedelta(hours=3):
-            await interaction.response.send_message(f"You can only collect gems once every 3 hours. The next reset is in **{time_until_reset.seconds // 3600}h {time_until_reset.seconds % 3600 // 60}m**.", ephemeral=True)
-            return
-
-        if 'last_gem_time' not in self.user_data:
-            self.user_data['last_gem_time'] = str(datetime.utcnow() - timedelta(hours=4))
-
-        last_gem_time = datetime.fromisoformat(self.user_data['last_gem_time'])
-        if datetime.utcnow() - last_gem_time < timedelta(hours=3):
-            remaining_time = timedelta(hours=3) - (datetime.utcnow() - last_gem_time)
-            hours, remainder = divmod(remaining_time.seconds, 3600)
+        last_gem_time = datetime.fromisoformat(self.user_data[user_id]['last_gem_time'])
+        if now - last_gem_time < timedelta(hours=5):
+            time_left = timedelta(hours=5) - (now - last_gem_time)
+            hours, remainder = divmod(time_left.seconds, 3600)
             minutes, _ = divmod(remainder, 60)
-            await interaction.response.send_message(f"The gem has already been collected. It will reset in **{hours}h {minutes}m**.", ephemeral=True)
+            await interaction.response.send_message(f"You can claim another gem in {hours}h {minutes}m.", ephemeral=True)
             return
-
-        self.user_data['last_gem_time'] = str(datetime.utcnow())
-        self.user_data.setdefault(user_id, {}).setdefault('coins', 0)
-        self.user_data[user_id]['coins'] += self.card['value'] // 10
+        
+        if self.card.get('gem_claimed', False):
+            await interaction.response.send_message(f"This card's gem has already been claimed.", ephemeral=True)
+            return
+        
+        gem_value, gem_color = get_gem_value()
+        self.card['gem_claimed'] = True
+        self.user_data[user_id]['coins'] += gem_value
+        self.user_data[user_id]['last_gem_time'] = now.isoformat()
 
         save_data(self.guild_id, self.cards, self.user_collections, self.user_data)
-        await interaction.response.send_message(f"You received **{self.card['value'] // 10}** coins from the gem 💎!", ephemeral=True)
+        await interaction.response.send_message(f"You received {gem_value} coins from the gem 💎!", ephemeral=True)
+        await interaction.message.edit(embed=discord.Embed(description=f"This gem has been claimed!").set_color(gem_color))
+
 
 class Paginator(discord.ui.View):
     def __init__(self, guild_id, collection):
