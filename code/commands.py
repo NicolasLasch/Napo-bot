@@ -365,9 +365,8 @@ def setup_commands(bot):
         hours, remainder = divmod(time_until_reset.seconds, 3600)
         minutes, _ = divmod(remainder, 60)
 
-        if 'last_claim_time' in user_data.get(user_id, {}):
-            last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
-            if datetime.utcnow() - last_claim_time < timedelta(hours=3):
+        if 'claims' in user_data.get(user_id, {}):
+            if user_data[user_id]['claims'] == 0:
                 can_claim = False
             else:
                 can_claim = True
@@ -390,9 +389,8 @@ def setup_commands(bot):
         hours, remainder = divmod(time_until_reset.seconds, 3600)
         minutes, _ = divmod(remainder, 60)
 
-        if 'last_claim_time' in user_data.get(user_id, {}):
-            last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
-            if datetime.utcnow() - last_claim_time < timedelta(hours=3):
+        if 'claims' in user_data.get(user_id, {}):
+            if user_data[user_id]['claims'] == 0:
                 can_claim = False
             else:
                 can_claim = True
@@ -593,12 +591,10 @@ def setup_commands(bot):
         cards, user_collections, user_data = guild_data[guild_id]
         initialize_user(guild_id, user_id)
 
-        if 'last_claim_time' not in user_id:
-            user_data[user_id]['last_claim_time'] = str(datetime.utcnow() - timedelta(hours=4))
-
-        last_claim_time = datetime.fromisoformat(user_data[user_id]['last_claim_time'])
-        print(datetime.utcnow() - last_claim_time)
-        if datetime.utcnow() - last_claim_time < timedelta(hours=3):
+        if 'claims' not in user_id:
+            user_data[user_id]['claims'] = 1
+            
+        if user_data[user_id]['claims'] == 1:
             pass
             await ctx.send("Your still have a claim left... You cannot use this command right now")
         else:
@@ -610,7 +606,7 @@ def setup_commands(bot):
                 await ctx.send(f"You can use !dailyreset again in **{hours}h {minutes}m**.")
                 return
 
-            user_data[user_id]['last_claim_time'] = (datetime.utcnow() - timedelta(hours=3)).isoformat()
+            user_data[user_id]['claims'] = 1
             user_data[user_id]['last_daily_reset_time'] = datetime.utcnow().isoformat()
             save_data(guild_id, cards, user_collections, user_data)
             await ctx.send("Your claim has been reset!")

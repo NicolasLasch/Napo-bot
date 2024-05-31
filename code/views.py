@@ -45,6 +45,7 @@ class ClaimButton(discord.ui.Button):
             claimed_by = f'Claimed by {user.display_name}'
             profile_url = user.avatar.url if user.avatar else user.default_avatar.url
             embed.set_footer(text=claimed_by, icon_url=profile_url)
+            self.user_data[user_id]['claims'] = 0
 
             await interaction.message.edit(embed=embed, view=None)
 
