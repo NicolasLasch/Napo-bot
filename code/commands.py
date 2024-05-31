@@ -590,83 +590,82 @@ def setup_commands(bot):
         next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
         await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
 
-    def setup_commands(bot):
-        @bot.command(name="wish")
-        async def wish(ctx, *, character_name: str):
-            """Command to add a character to the user's wish list."""
-            guild_id = str(ctx.guild.id)
-            initialize_guild(guild_id)
-            user_id = str(ctx.author.id)
-            cards, user_collections, user_data = guild_data[guild_id]
-            initialize_user(guild_id, user_id)
+    @bot.command(name="wish")
+    async def wish(ctx, *, character_name: str):
+        """Command to add a character to the user's wish list."""
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(ctx.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
 
-            if 'wishes' not in user_data[user_id]:
-                user_data[user_id]['wishes'] = []
+        if 'wishes' not in user_data[user_id]:
+            user_data[user_id]['wishes'] = []
 
-            if len(user_data[user_id]['wishes']) >= MAX_WISHES:
-                await ctx.send(f"You can only have a maximum of {MAX_WISHES} wishes.")
-                return
+        if len(user_data[user_id]['wishes']) >= MAX_WISHES:
+            await ctx.send(f"You can only have a maximum of {MAX_WISHES} wishes.")
+            return
 
+        card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
+        if not card:
+            await ctx.send(f"Character {character_name} not found.")
+            return
+
+        user_data[user_id]['wishes'].append(card['name'])
+        save_data(guild_id, cards, user_collections, user_data)
+        await ctx.send(f"Character {character_name} has been added to your wish list!")
+
+    @bot.command(name="wishremove")
+    async def wishremove(ctx, *, character_name: str):
+        """Command to remove a character from the user's wish list."""
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(ctx.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
+
+        if 'wishes' not in user_data[user_id]:
+            await ctx.send("You don't have any wishes.")
+            return
+
+        if character_name not in user_data[user_id]['wishes']:
+            await ctx.send(f"Character {character_name} is not in your wish list.")
+            return
+
+        user_data[user_id]['wishes'].remove(character_name)
+        save_data(guild_id, cards, user_collections, user_data)
+        await ctx.send(f"Character {character_name} has been removed from your wish list!")
+
+    @bot.command(name="wishlist")
+    async def wishlist(ctx):
+        """Command to display the user's wish list."""
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(ctx.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
+
+        if 'wishes' not in user_data[user_id]:
+            await ctx.send("You don't have any wishes.")
+            return
+
+        wishlist = user_data[user_id]['wishes']
+        wishlist_display = []
+        for character_name in wishlist:
             card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
             if not card:
-                await ctx.send(f"Character {character_name} not found.")
-                return
+                continue
+            status = ""
+            if card['claimed_by'] == user_id:
+                status = " ✅"
+            elif card['claimed_by']:
+                status = " ❌"
+            wishlist_display.append(f"{character_name}{status}")
 
-            user_data[user_id]['wishes'].append(card['name'])
-            save_data(guild_id, cards, user_collections, user_data)
-            await ctx.send(f"Character {character_name} has been added to your wish list!")
-
-        @bot.command(name="wishremove")
-        async def wishremove(ctx, *, character_name: str):
-            """Command to remove a character from the user's wish list."""
-            guild_id = str(ctx.guild.id)
-            initialize_guild(guild_id)
-            user_id = str(ctx.author.id)
-            cards, user_collections, user_data = guild_data[guild_id]
-            initialize_user(guild_id, user_id)
-
-            if 'wishes' not in user_data[user_id]:
-                await ctx.send("You don't have any wishes.")
-                return
-
-            if character_name not in user_data[user_id]['wishes']:
-                await ctx.send(f"Character {character_name} is not in your wish list.")
-                return
-
-            user_data[user_id]['wishes'].remove(character_name)
-            save_data(guild_id, cards, user_collections, user_data)
-            await ctx.send(f"Character {character_name} has been removed from your wish list!")
-
-        @bot.command(name="wishlist")
-        async def wishlist(ctx):
-            """Command to display the user's wish list."""
-            guild_id = str(ctx.guild.id)
-            initialize_guild(guild_id)
-            user_id = str(ctx.author.id)
-            cards, user_collections, user_data = guild_data[guild_id]
-            initialize_user(guild_id, user_id)
-
-            if 'wishes' not in user_data[user_id]:
-                await ctx.send("You don't have any wishes.")
-                return
-
-            wishlist = user_data[user_id]['wishes']
-            wishlist_display = []
-            for character_name in wishlist:
-                card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
-                if not card:
-                    continue
-                status = ""
-                if card['claimed_by'] == user_id:
-                    status = " ✅"
-                elif card['claimed_by']:
-                    status = " ❌"
-                wishlist_display.append(f"{character_name}{status}")
-
-            if not wishlist_display:
-                await ctx.send("Your wish list is empty.")
-            else:
-                await ctx.send("Your wish list:\n" + "\n".join(wishlist_display))
+        if not wishlist_display:
+            await ctx.send("Your wish list is empty.")
+        else:
+            await ctx.send("Your wish list:\n" + "\n".join(wishlist_display))
     
     @bot.command(name="daily")
     async def daily(ctx):
