@@ -15,6 +15,7 @@ roll_cooldowns = {}
 max_rolls_per_hour = 5
 claim_cooldowns = {}
 max_claims_per_3_hours = 1
+MAX_WISHES = 3
 
 # Define probability distribution
 base_probabilities = {
@@ -200,6 +201,15 @@ def setup_commands(bot):
             return
 
         embed = discord.Embed(title=card['name'], description=card['description'])
+        wished_by = []
+        for member_id, data in guild_data[guild_id][2].items():
+            if 'wishes' in data and card['name'] in data['wishes']:
+                wished_by.append(f"<@{member_id}>")
+
+        if wished_by:
+            wished_users = ", ".join(wished_by)
+            await ctx.send(f"🎉 Wished card! {wished_users}")
+
         if card['claimed_by']:
             user = await ctx.guild.fetch_member(card['claimed_by'])
             claimed_by = f'Claimed by {user.name}'
@@ -208,7 +218,7 @@ def setup_commands(bot):
             embed.color = discord.Color.red()
         else:
             embed.set_footer(text="Claimed by no one")
-            embed.color = discord.Color.orange()
+            embed.color = discord.Color.green() if wished_by else discord.Color.orange()
 
         embed.add_field(name=f"{card['value']} 💎 - {card['rank']}", value="")
         embed.set_image(url=card['image_urls'][0])
@@ -224,7 +234,6 @@ def setup_commands(bot):
         await message.edit(content="Time to claim the character has expired.", view=None)
 
         save_data(guild_id, cards, user_collections, user_data)
-
 
     @bot.command(name="mm")
     async def mm(ctx, member: discord.Member = None):
@@ -540,47 +549,125 @@ def setup_commands(bot):
 
 
     @bot.command(name="buyluck")
-async def buyluck(ctx):
-    guild_id = str(ctx.guild.id)
-    initialize_guild(guild_id)
-    user_id = str(ctx.author.id)
-    cards, user_collections, user_data = guild_data[guild_id]
-    initialize_user(guild_id, user_id)
+    async def buyluck(ctx):
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(ctx.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        initialize_user(guild_id, user_id)
 
-    user_info = user_data[user_id]
-    coins = user_info['coins']
-    luck_purchases = user_info['luck_purchases']
+        user_info = user_data[user_id]
+        coins = user_info['coins']
+        luck_purchases = user_info['luck_purchases']
 
-    cost = 500 * (2 ** luck_purchases)
-    if luck_purchases >= 5:
-        cost = 500 * (2 ** 5) + 2000 * (luck_purchases - 5)
+        cost = 500 * (2 ** luck_purchases)
+        if luck_purchases >= 5:
+            cost = 500 * (2 ** 5) + 2000 * (luck_purchases - 5)
 
-    if coins < cost:
-        await ctx.send(f"You don't have enough coins to buy luck. You need {cost} coins.")
-        return
+        if coins < cost:
+            await ctx.send(f"You don't have enough coins to buy luck. You need {cost} coins.")
+            return
 
-    user_info['coins'] -= cost
-    user_info['luck_purchases'] += 1
+        user_info['coins'] -= cost
+        user_info['luck_purchases'] += 1
 
-    # Adjust probabilities
-    total_increment = sum(max_increment.values())
-    for rank in base_probabilities:
-        # Increase probabilities for higher ranks
-        if rank in ['SS', 'S', 'A']:
-            user_info['luck'][rank] += max_increment[rank] * (1 / total_increment)
-        # Decrease probabilities for lower ranks
-        elif rank in ['B', 'C', 'D', 'E']:
-            user_info['luck'][rank] -= max_increment[rank] * (1 / total_increment)
+        # Adjust probabilities
+        total_increment = sum(max_increment.values())
+        for rank in base_probabilities:
+            # Increase probabilities for higher ranks
+            if rank in ['SS', 'S', 'A']:
+                user_info['luck'][rank] += max_increment[rank] * (1 / total_increment)
+            # Decrease probabilities for lower ranks
+            elif rank in ['B', 'C', 'D', 'E']:
+                user_info['luck'][rank] -= max_increment[rank] * (1 / total_increment)
+        
+        # Normalize probabilities
+        total = sum(user_info['luck'].values())
+        for rank in user_info['luck']:
+            user_info['luck'][rank] /= total
+
+        save_data(guild_id, cards, user_collections, user_data)
+        next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
+        await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
+
+    def setup_commands(bot):
+        @bot.command(name="wish")
+        async def wish(ctx, *, character_name: str):
+            """Command to add a character to the user's wish list."""
+            guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
+            user_id = str(ctx.author.id)
+            cards, user_collections, user_data = guild_data[guild_id]
+            initialize_user(guild_id, user_id)
+
+            if 'wishes' not in user_data[user_id]:
+                user_data[user_id]['wishes'] = []
+
+            if len(user_data[user_id]['wishes']) >= MAX_WISHES:
+                await ctx.send(f"You can only have a maximum of {MAX_WISHES} wishes.")
+                return
+
+            card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
+            if not card:
+                await ctx.send(f"Character {character_name} not found.")
+                return
+
+            user_data[user_id]['wishes'].append(card['name'])
+            save_data(guild_id, cards, user_collections, user_data)
+            await ctx.send(f"Character {character_name} has been added to your wish list!")
+
+        @bot.command(name="wishremove")
+        async def wishremove(ctx, *, character_name: str):
+            """Command to remove a character from the user's wish list."""
+            guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
+            user_id = str(ctx.author.id)
+            cards, user_collections, user_data = guild_data[guild_id]
+            initialize_user(guild_id, user_id)
+
+            if 'wishes' not in user_data[user_id]:
+                await ctx.send("You don't have any wishes.")
+                return
+
+            if character_name not in user_data[user_id]['wishes']:
+                await ctx.send(f"Character {character_name} is not in your wish list.")
+                return
+
+            user_data[user_id]['wishes'].remove(character_name)
+            save_data(guild_id, cards, user_collections, user_data)
+            await ctx.send(f"Character {character_name} has been removed from your wish list!")
+
+        @bot.command(name="wishlist")
+        async def wishlist(ctx):
+            """Command to display the user's wish list."""
+            guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
+            user_id = str(ctx.author.id)
+            cards, user_collections, user_data = guild_data[guild_id]
+            initialize_user(guild_id, user_id)
+
+            if 'wishes' not in user_data[user_id]:
+                await ctx.send("You don't have any wishes.")
+                return
+
+            wishlist = user_data[user_id]['wishes']
+            wishlist_display = []
+            for character_name in wishlist:
+                card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
+                if not card:
+                    continue
+                status = ""
+                if card['claimed_by'] == user_id:
+                    status = " ✅"
+                elif card['claimed_by']:
+                    status = " ❌"
+                wishlist_display.append(f"{character_name}{status}")
+
+            if not wishlist_display:
+                await ctx.send("Your wish list is empty.")
+            else:
+                await ctx.send("Your wish list:\n" + "\n".join(wishlist_display))
     
-    # Normalize probabilities
-    total = sum(user_info['luck'].values())
-    for rank in user_info['luck']:
-        user_info['luck'][rank] /= total
-
-    save_data(guild_id, cards, user_collections, user_data)
-    next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
-    await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
-
     @bot.command(name="daily")
     async def daily(ctx):
         """Command get free coins every day"""

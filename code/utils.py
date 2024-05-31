@@ -35,7 +35,9 @@ def load_data(guild_id):
     for user in user_data.values():
         if 'last_gem_time' not in user:
             user['last_gem_time'] = (datetime.utcnow() - timedelta(hours=6)).isoformat()
-
+        if 'wishes' not in user:
+            user['wishes'] = []
+            
     return cards, user_collections, user_data
 
 def save_data(guild_id, cards, user_collections, user_data):
