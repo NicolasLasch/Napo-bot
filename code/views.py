@@ -26,7 +26,7 @@ class ClaimButton(discord.ui.Button):
         user_id = str(interaction.user.id)
         time_until_reset = get_time_until_next_reset()
 
-        if time_until_reset > timedelta(hours=3):
+        if self.user_data[user_id]['claims'] == 0:
             await interaction.response.send_message(f"You can only claim once every 3 hours. The next reset is in **{time_until_reset.seconds // 3600}h {time_until_reset.seconds % 3600 // 60}m**.", ephemeral=True)
             return
 
