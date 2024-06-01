@@ -597,6 +597,126 @@ def setup_commands(bot):
                 next_cost = 10000
         await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
 
+    @bot.command(name="roulette")
+    async def roulette(ctx, *, args: str):
+        """Command to gamble a card for a chance to upgrade to another card."""
+        try:
+            character_name, target_character_name = args.split(" $ ")
+            character_name = character_name.strip()
+            target_character_name = target_character_name.strip()
+        except ValueError:
+            await ctx.send("Invalid format. Use: !roulette <character_name> $ <target_character_name>")
+            return
+
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        cards = guild_data[guild_id][0]
+        user_id = str(ctx.author.id)
+        user_collections = guild_data[guild_id][1]
+        user_data = guild_data[guild_id][2]
+        initialize_user(guild_id, user_id)
+
+        # Check if the user owns the character they want to gamble
+        card = next((c for c in user_collections.get(user_id, []) if c['name'].lower() == character_name.lower()), None)
+        if not card:
+            await ctx.send('You do not own this character.')
+            return
+
+        # Check if the target character is not claimed
+        target_card = next((c for c in cards if c['name'].lower() == target_character_name.lower()), None)
+        if not target_card:
+            await ctx.send('Target character not found.')
+            return
+
+        if target_card['claimed_by']:
+            await ctx.send('Target character is already claimed.')
+            return
+
+        # Calculate the upgrade cost and probability
+        card_value = card['value']
+        target_value = target_card['value']
+        if card_value >= target_value:
+            success_probability = 0.4 + 0.5 * (card_value / target_value) if card_value < target_value * 2 else 0.9
+        else:
+            success_probability = 0.4 * (card_value / target_value)
+
+        success_probability = min(success_probability, 0.9)  # Cap the success probability at 90%
+
+        # Display the roulette bar and result
+        msg = await ctx.send(f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}')
+
+        await asyncio.sleep(2)  # Simulate the roulette spinning
+
+        if random.random() < success_probability:
+            # Successful upgrade
+            user_collections[user_id].remove(card)
+            target_card['claimed_by'] = user_id
+            user_collections[user_id].append(target_card)
+            await msg.edit(content=f'🎉 Success! You upgraded {character_name} to {target_character_name}!')
+        else:
+            # Failed upgrade
+            user_collections[user_id].remove(card)
+            await msg.edit(content=f'❌ Failed! You lost {character_name} and did not gain {target_character_name}.')
+
+        save_data(guild_id, cards, user_collections, user_data)
+
+    # Add the same command in app_commands format for slash commands
+    @bot.tree.command(name="roulette", description="Gamble a card for a chance to upgrade to another card")
+    @app_commands.describe(character_name="Character name to gamble", target_character_name="Character name to upgrade to")
+    async def roulette_app(interaction: discord.Interaction, character_name: str, target_character_name: str):
+        """Slash command to gamble a card for a chance to upgrade to another card."""
+        guild_id = str(interaction.guild.id)
+        initialize_guild(guild_id)
+        cards = guild_data[guild_id][0]
+        user_id = str(interaction.user.id)
+        user_collections = guild_data[guild_id][1]
+        user_data = guild_data[guild_id][2]
+        initialize_user(guild_id, user_id)
+
+        # Check if the user owns the character they want to gamble
+        card = next((c for c in user_collections.get(user_id, []) if c['name'].lower() == character_name.lower()), None)
+        if not card:
+            await interaction.response.send_message('You do not own this character.', ephemeral=True)
+            return
+
+        # Check if the target character is not claimed
+        target_card = next((c for c in cards if c['name'].lower() == target_character_name.lower()), None)
+        if not target_card:
+            await interaction.response.send_message('Target character not found.', ephemeral=True)
+            return
+
+        if target_card['claimed_by']:
+            await interaction.response.send_message('Target character is already claimed.', ephemeral=True)
+            return
+
+        # Calculate the upgrade cost and probability
+        card_value = card['value']
+        target_value = target_card['value']
+        if card_value >= target_value:
+            success_probability = 0.4 + 0.5 * (card_value / target_value) if card_value < target_value * 2 else 0.9
+        else:
+            success_probability = 0.4 * (card_value / target_value)
+
+        success_probability = min(success_probability, 0.9)  # Cap the success probability at 90%
+
+        # Display the roulette bar and result
+        msg = await interaction.response.send_message(f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}')
+
+        await asyncio.sleep(2)  # Simulate the roulette spinning
+
+        if random.random() < success_probability:
+            # Successful upgrade
+            user_collections[user_id].remove(card)
+            target_card['claimed_by'] = user_id
+            user_collections[user_id].append(target_card)
+            await interaction.edit_original_response(content=f'🎉 Success! You upgraded {character_name} to {target_character_name}!')
+        else:
+            # Failed upgrade
+            user_collections[user_id].remove(card)
+            await interaction.edit_original_response(content=f'❌ Failed! You lost {character_name} and did not gain {target_character_name}.')
+
+        save_data(guild_id, cards, user_collections, user_data)
+    
     @bot.command(name="ci")
     async def change_image(ctx, *, args: str):
         """Command to change the first image of the character to the specified image number."""
