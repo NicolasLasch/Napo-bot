@@ -25,7 +25,7 @@ async def reset_rolls():
     roll_cooldowns = {}
     for guildid in guild_data:
         print(guildid)
-        for memberid in guildid:
+        for memberid in guild_data[guildid][2]:
             print(memberid)
             if not guildid.bot:
                 user_data = guild_data[guildid][2]
