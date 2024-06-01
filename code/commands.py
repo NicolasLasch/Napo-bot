@@ -598,8 +598,15 @@ def setup_commands(bot):
         await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
 
     @bot.command(name="ci")
-    async def change_image(ctx, character_name: str, img_num: int):
+    async def change_image(ctx, *, args: str):
         """Command to change the first image of the character to the specified image number."""
+        try:
+            character_name, img_num_str = args.split(" $ ")
+            img_num = int(img_num_str.strip())
+        except ValueError:
+            await ctx.send("Invalid format. Use: !ci <character_name> $ <img_num>")
+            return
+
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         cards = guild_data[guild_id][0]
@@ -644,7 +651,7 @@ def setup_commands(bot):
         card['image_urls'][0], card['image_urls'][img_num - 1] = card['image_urls'][img_num - 1], card['image_urls'][0]
         save_data(guild_id, *guild_data[guild_id])
         await interaction.response.send_message(f'Image {img_num} has been set as the first image for {character_name}.', ephemeral=True)
-    
+
     @bot.command(name="wish")
     async def wish(ctx, *, character_name: str):
         """Command to add a character to the user's wish list."""
