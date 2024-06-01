@@ -647,15 +647,24 @@ def setup_commands(bot):
 
         await asyncio.sleep(2)  # Simulate the roulette spinning
 
+        # Simulate the roulette animation
+        animation_steps = 10
+        for i in range(animation_steps):
+            await msg.edit(content=f'Roulette: [{"|"*i}{" "*(animation_steps-i)}] {i * 10}%')
+            await asyncio.sleep(0.1)
+
+        # Determine the outcome
         if random.random() < success_probability:
             # Successful upgrade
             user_collections[user_id].remove(card)
+            card['claimed_by'] = None  # Unclaim the card
             target_card['claimed_by'] = user_id
             user_collections[user_id].append(target_card)
             await msg.edit(content=f'🎉 Success! You upgraded {character_name} to {target_character_name}!')
         else:
             # Failed upgrade
             user_collections[user_id].remove(card)
+            card['claimed_by'] = None  # Unclaim the card
             await msg.edit(content=f'❌ Failed! You lost {character_name} and did not gain {target_character_name}.')
 
         save_data(guild_id, cards, user_collections, user_data)
@@ -704,18 +713,28 @@ def setup_commands(bot):
 
         await asyncio.sleep(2)  # Simulate the roulette spinning
 
+        # Simulate the roulette animation
+        animation_steps = 10
+        for i in range(animation_steps):
+            await interaction.edit_original_response(content=f'Roulette: [{"|"*i}{" "*(animation_steps-i)}] {i * 10}%')
+            await asyncio.sleep(0.1)
+
+        # Determine the outcome
         if random.random() < success_probability:
             # Successful upgrade
             user_collections[user_id].remove(card)
+            card['claimed_by'] = None  # Unclaim the card
             target_card['claimed_by'] = user_id
             user_collections[user_id].append(target_card)
             await interaction.edit_original_response(content=f'🎉 Success! You upgraded {character_name} to {target_character_name}!')
         else:
             # Failed upgrade
             user_collections[user_id].remove(card)
+            card['claimed_by'] = None  # Unclaim the card
             await interaction.edit_original_response(content=f'❌ Failed! You lost {character_name} and did not gain {target_character_name}.')
 
         save_data(guild_id, cards, user_collections, user_data)
+
     
     @bot.command(name="ci")
     async def change_image(ctx, *, args: str):
