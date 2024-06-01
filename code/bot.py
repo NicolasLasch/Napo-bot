@@ -19,7 +19,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @tasks.loop(minutes=1)
 async def reset_rolls():
     now = datetime.utcnow()
-    next_reset = (now + timedelta(minutes=1)).replace(minute=0, second=0, microsecond=0)
+    next_reset = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
     await asyncio.sleep((next_reset - now).total_seconds())
     global roll_cooldowns
     roll_cooldowns = {}

@@ -572,15 +572,15 @@ def setup_commands(bot):
         user_info['luck_purchases'] += 1
 
         # Adjust probabilities
-        total_increment = sum(max_increment.values())
+        total_increment = sum(max_increment[rank] for rank in ['SS', 'S', 'A'])
+        decrement_fraction = total_increment / sum(base_probabilities[rank] for rank in ['B', 'C', 'D', 'E'])
+
         for rank in base_probabilities:
-            # Increase probabilities for higher ranks
             if rank in ['SS', 'S', 'A']:
-                user_info['luck'][rank] += max_increment[rank] * (1 / total_increment)
-            # Decrease probabilities for lower ranks
+                user_info['luck'][rank] += max_increment[rank]
             elif rank in ['B', 'C', 'D', 'E']:
-                user_info['luck'][rank] -= max_increment[rank] * (1 / total_increment)
-        
+                user_info['luck'][rank] -= base_probabilities[rank] * decrement_fraction
+
         # Normalize probabilities
         total = sum(user_info['luck'].values())
         for rank in user_info['luck']:
