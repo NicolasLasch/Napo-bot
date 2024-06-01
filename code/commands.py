@@ -596,7 +596,7 @@ def setup_commands(bot):
             if next_cost >= 10000:
                 next_cost = 10000
         await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
-
+    
     @bot.command(name="roulette")
     async def roulette(ctx, *, args: str):
         """Command to gamble a card for a chance to upgrade to another card."""
@@ -641,6 +641,21 @@ def setup_commands(bot):
             success_probability = 0.4 * (card_value / target_value)
 
         success_probability = min(success_probability, 0.9)  # Cap the success probability at 90%
+
+        # Ask for confirmation
+        await ctx.send(f'The success probability for upgrading {character_name} to {target_character_name} is {success_probability:.2%}. Do you want to proceed? (yes/no)')
+
+        def check(msg):
+            return msg.author == ctx.author and msg.channel == ctx.channel and msg.content.lower() in ['yes', 'no']
+
+        try:
+            msg = await bot.wait_for('message', check=check, timeout=30)
+            if msg.content.lower() == 'no':
+                await ctx.send('Roulette cancelled.')
+                return
+        except asyncio.TimeoutError:
+            await ctx.send('Roulette timed out. Please try again.')
+            return
 
         # Create the roulette bar
         total_segments = 20
@@ -718,6 +733,21 @@ def setup_commands(bot):
 
         success_probability = min(success_probability, 0.9)  # Cap the success probability at 90%
 
+        # Ask for confirmation
+        await interaction.response.send_message(f'The success probability for upgrading {character_name} to {target_character_name} is {success_probability:.2%}. Do you want to proceed? (yes/no)')
+
+        def check(msg):
+            return msg.author == interaction.user and msg.channel == interaction.channel and msg.content.lower() in ['yes', 'no']
+
+        try:
+            msg = await bot.wait_for('message', check=check, timeout=30)
+            if msg.content.lower() == 'no':
+                await interaction.followup.send('Roulette cancelled.', ephemeral=True)
+                return
+        except asyncio.TimeoutError:
+            await interaction.followup.send('Roulette timed out. Please try again.', ephemeral=True)
+            return
+
         # Create the roulette bar
         total_segments = 20
         success_segments = int(success_probability * total_segments)
@@ -725,7 +755,7 @@ def setup_commands(bot):
         for i in range(success_segments):
             roulette_bar[i] = "🟩"
 
-        msg = await interaction.response.send_message(f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}\nRoulette: {"".join(roulette_bar)}')
+        msg = await interaction.followup.send(f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}\nRoulette: {"".join(roulette_bar)}')
 
         await asyncio.sleep(2)  # Simulate the roulette spinning
 
@@ -754,7 +784,6 @@ def setup_commands(bot):
             await interaction.edit_original_response(content=f'❌ Failed! You lost {character_name} and did not gain {target_character_name}.')
 
         save_data(guild_id, cards, user_collections, user_data)
-
 
     
     @bot.command(name="ci")
