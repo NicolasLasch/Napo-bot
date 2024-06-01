@@ -664,7 +664,7 @@ def setup_commands(bot):
         for i in range(success_segments):
             roulette_bar[i] = "🟩"
 
-        msg = await ctx.send(f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\Upgrade: {"".join(roulette_bar)}')
+        msg = await ctx.send(f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\nUpgrade: {"".join(roulette_bar)}')
 
         await asyncio.sleep(2)  # Simulate the roulette spinning
 
@@ -675,7 +675,7 @@ def setup_commands(bot):
             position = random.randint(0, total_segments - 1)
             current_bar = roulette_bar[:]
             current_bar.insert(position, cursor)
-            await msg.edit(content=f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\Upgrade: {"".join(current_bar)}')
+            await msg.edit(content=f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\nUpgrade: {"".join(current_bar)}')
             await asyncio.sleep(0.1)
 
         # Determine the outcome
@@ -755,7 +755,7 @@ def setup_commands(bot):
         for i in range(success_segments):
             roulette_bar[i] = "🟩"
 
-        msg = await interaction.followup.send(f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\Upgrade: {"".join(roulette_bar)}')
+        msg = await interaction.followup.send(f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\nUpgrade: {"".join(roulette_bar)}')
 
         await asyncio.sleep(2)  # Simulate the roulette spinning
 
@@ -766,7 +766,7 @@ def setup_commands(bot):
             position = random.randint(0, total_segments - 1)
             current_bar = roulette_bar[:]
             current_bar.insert(position, cursor)
-            await interaction.edit_original_response(content=f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\Upgrade: {"".join(current_bar)}')
+            await interaction.edit_original_response(content=f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\nUpgrade: {"".join(current_bar)}')
             await asyncio.sleep(0.1)
 
         # Determine the outcome
