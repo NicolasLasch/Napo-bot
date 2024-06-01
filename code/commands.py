@@ -655,13 +655,13 @@ def setup_commands(bot):
 
         # Animate the cursor over the roulette bar
         cursor = "🔷"
-        animation_steps = 50
+        animation_steps = 10
         for _ in range(animation_steps):
             position = random.randint(0, total_segments - 1)
             current_bar = roulette_bar[:]
             current_bar.insert(position, cursor)
             await msg.edit(content=f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}\nRoulette: {"".join(current_bar)}')
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
 
         # Determine the outcome
         if random.random() < success_probability:
@@ -731,13 +731,13 @@ def setup_commands(bot):
 
         # Animate the cursor over the roulette bar
         cursor = "🔷"
-        animation_steps = 50
+        animation_steps = 10
         for _ in range(animation_steps):
             position = random.randint(0, total_segments - 1)
             current_bar = roulette_bar[:]
             current_bar.insert(position, cursor)
             await interaction.edit_original_response(content=f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}\nRoulette: {"".join(current_bar)}')
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
 
         # Determine the outcome
         if random.random() < success_probability:
