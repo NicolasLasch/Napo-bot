@@ -54,7 +54,7 @@ class ClaimButton(discord.ui.Button):
 class GemButton(discord.ui.Button):
     def __init__(self, guild_id, card, user_data, user_collections, cards):
         gem_value, gem_color = get_gem_value()
-        super().__init__(label=gem_color, style=discord.ButtonStyle.primary)
+        super().__init__(label="", emoji=gem_color, style=discord.ButtonStyle.primary)
         self.guild_id = guild_id
         self.card = card
         self.user_data = user_data
@@ -124,13 +124,13 @@ class Paginator(discord.ui.View):
 
         return embed
 
-    @discord.ui.button(label="⬅️", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="",emoji="<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
     async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page - 1) % len(self.collection)
         embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="➡️", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="",emoji="<:right:1246472426410217594>", style=discord.ButtonStyle.secondary)
     async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page + 1) % len(self.collection)
         embed = await self.create_embed(interaction)
@@ -167,13 +167,13 @@ class GlobalPaginator(discord.ui.View):
         embed.color = discord.Color.red() if card['claimed_by'] else discord.Color.orange()
         return embed
 
-    @discord.ui.button(label="⬅️", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="",emoji="<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
     async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page - 1) % len(self.collection)
         embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="➡️", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="",emoji="<:right:1246472426410217594>",, style=discord.ButtonStyle.secondary)
     async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page + 1) % len(self.collection)
         embed = await self.create_embed(interaction)
@@ -210,13 +210,13 @@ class ImagePaginator(discord.ui.View):
         embed.color = discord.Color.red() if self.card['claimed_by'] else discord.Color.orange()
         return embed
 
-    @discord.ui.button(label="Left",emoji="<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="",emoji="<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
     async def previous_image(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_image = (self.current_image - 1) % len(self.card["image_urls"])
         embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="Right",emoji="<:right:1246472426410217594>", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="",emoji="<:right:1246472426410217594>", style=discord.ButtonStyle.secondary)
     async def next_image(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_image = (self.current_image + 1) % len(self.card["image_urls"])
         embed = await self.create_embed(interaction)
