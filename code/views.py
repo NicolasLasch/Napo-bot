@@ -173,7 +173,7 @@ class GlobalPaginator(discord.ui.View):
         embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="",emoji="<:right:1246472426410217594>",, style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="",emoji="<:right:1246472426410217594>", style=discord.ButtonStyle.secondary)
     async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page + 1) % len(self.collection)
         embed = await self.create_embed(interaction)
