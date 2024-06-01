@@ -220,7 +220,7 @@ def setup_commands(bot):
             embed.set_footer(text="Claimed by no one")
             embed.color = discord.Color.green() if wished_by else discord.Color.orange()
 
-        embed.add_field(name=f"{card['value']} 💎 - {card['rank']}", value="")
+        embed.add_field(name=f"{card['value']} <:bluegem:1246468408963367003> - {card['rank']}", value="")
         embed.set_image(url=card['image_urls'][0])
 
         view = discord.ui.View()
@@ -597,7 +597,7 @@ def setup_commands(bot):
                 next_cost = 10000
         await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
     
-    @bot.command(name="roulette")
+    @bot.command(name="upgrade")
     async def roulette(ctx, *, args: str):
         """Command to gamble a card for a chance to upgrade to another card."""
         try:
@@ -605,7 +605,7 @@ def setup_commands(bot):
             character_name = character_name.strip()
             target_character_name = target_character_name.strip()
         except ValueError:
-            await ctx.send("Invalid format. Use: !roulette <character_name> $ <target_character_name>")
+            await ctx.send("Invalid format. Use: !upgrade <character_name> $ <target_character_name>")
             return
 
         guild_id = str(ctx.guild.id)
@@ -643,7 +643,7 @@ def setup_commands(bot):
         success_probability = min(success_probability, 0.9)  # Cap the success probability at 90%
 
         # Ask for confirmation
-        await ctx.send(f'The success probability for upgrading {character_name} to {target_character_name} is {success_probability:.2%}. Do you want to proceed? (yes/no)')
+        await ctx.send(f'The success probability for upgrading **{character_name}** to **{target_character_name}** is **{success_probability:.2%}**. Do you want to proceed? (yes/no)')
 
         def check(msg):
             return msg.author == ctx.author and msg.channel == ctx.channel and msg.content.lower() in ['yes', 'no']
@@ -651,10 +651,10 @@ def setup_commands(bot):
         try:
             msg = await bot.wait_for('message', check=check, timeout=30)
             if msg.content.lower() == 'no':
-                await ctx.send('Roulette cancelled.')
+                await ctx.send('Upgrade cancelled.')
                 return
         except asyncio.TimeoutError:
-            await ctx.send('Roulette timed out. Please try again.')
+            await ctx.send('Upgrade timed out. Please try again.')
             return
 
         # Create the roulette bar
@@ -664,7 +664,7 @@ def setup_commands(bot):
         for i in range(success_segments):
             roulette_bar[i] = "🟩"
 
-        msg = await ctx.send(f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}\nRoulette: {"".join(roulette_bar)}')
+        msg = await ctx.send(f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\Upgrade: {"".join(roulette_bar)}')
 
         await asyncio.sleep(2)  # Simulate the roulette spinning
 
@@ -675,7 +675,7 @@ def setup_commands(bot):
             position = random.randint(0, total_segments - 1)
             current_bar = roulette_bar[:]
             current_bar.insert(position, cursor)
-            await msg.edit(content=f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}\nRoulette: {"".join(current_bar)}')
+            await msg.edit(content=f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\Upgrade: {"".join(current_bar)}')
             await asyncio.sleep(0.1)
 
         # Determine the outcome
@@ -685,17 +685,17 @@ def setup_commands(bot):
             card['claimed_by'] = None  # Unclaim the card
             target_card['claimed_by'] = user_id
             user_collections[user_id].append(target_card)
-            await msg.edit(content=f'🎉 Success! You upgraded {character_name} to {target_character_name}!')
+            await msg.edit(content=f'🎉 Success! You upgraded **{character_name}** to **{target_character_name}**!')
         else:
             # Failed upgrade
             user_collections[user_id].remove(card)
             card['claimed_by'] = None  # Unclaim the card
-            await msg.edit(content=f'❌ Failed! You lost {character_name} and did not gain {target_character_name}.')
+            await msg.edit(content=f'❌ Failed! You lost **{character_name}** and did not gain **{target_character_name}**.')
 
         save_data(guild_id, cards, user_collections, user_data)
 
     # Add the same command in app_commands format for slash commands
-    @bot.tree.command(name="roulette", description="Gamble a card for a chance to upgrade to another card")
+    @bot.tree.command(name="upgrade", description="Gamble a card for a chance to upgrade to another card")
     @app_commands.describe(character_name="Character name to gamble", target_character_name="Character name to upgrade to")
     async def roulette_app(interaction: discord.Interaction, character_name: str, target_character_name: str):
         """Slash command to gamble a card for a chance to upgrade to another card."""
@@ -731,10 +731,10 @@ def setup_commands(bot):
         else:
             success_probability = 0.4 * (card_value / target_value)
 
-        success_probability = min(success_probability, 0.9)  # Cap the success probability at 90%
+        success_probability = min(success_probability, 0.9)
 
         # Ask for confirmation
-        await interaction.response.send_message(f'The success probability for upgrading {character_name} to {target_character_name} is {success_probability:.2%}. Do you want to proceed? (yes/no)')
+        await interaction.response.send_message(f'The success probability for upgrading **{character_name}** to **{target_character_name}** is**{success_probability:.2%}**. Do you want to proceed? (yes/no)')
 
         def check(msg):
             return msg.author == interaction.user and msg.channel == interaction.channel and msg.content.lower() in ['yes', 'no']
@@ -742,10 +742,10 @@ def setup_commands(bot):
         try:
             msg = await bot.wait_for('message', check=check, timeout=30)
             if msg.content.lower() == 'no':
-                await interaction.followup.send('Roulette cancelled.', ephemeral=True)
+                await interaction.followup.send('Upgrade cancelled.', ephemeral=True)
                 return
         except asyncio.TimeoutError:
-            await interaction.followup.send('Roulette timed out. Please try again.', ephemeral=True)
+            await interaction.followup.send('Upgrade timed out. Please try again.', ephemeral=True)
             return
 
         # Create the roulette bar
@@ -755,7 +755,7 @@ def setup_commands(bot):
         for i in range(success_segments):
             roulette_bar[i] = "🟩"
 
-        msg = await interaction.followup.send(f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}\nRoulette: {"".join(roulette_bar)}')
+        msg = await interaction.followup.send(f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\Upgrade: {"".join(roulette_bar)}')
 
         await asyncio.sleep(2)  # Simulate the roulette spinning
 
@@ -766,7 +766,7 @@ def setup_commands(bot):
             position = random.randint(0, total_segments - 1)
             current_bar = roulette_bar[:]
             current_bar.insert(position, cursor)
-            await interaction.edit_original_response(content=f'Attempting to upgrade {character_name} to {target_character_name}...\nChance: {success_probability:.2%}\nRoulette: {"".join(current_bar)}')
+            await interaction.edit_original_response(content=f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\Upgrade: {"".join(current_bar)}')
             await asyncio.sleep(0.1)
 
         # Determine the outcome
@@ -776,12 +776,12 @@ def setup_commands(bot):
             card['claimed_by'] = None  # Unclaim the card
             target_card['claimed_by'] = user_id
             user_collections[user_id].append(target_card)
-            await interaction.edit_original_response(content=f'🎉 Success! You upgraded {character_name} to {target_character_name}!')
+            await interaction.edit_original_response(content=f'🎉 Success! You upgraded **{character_name}** to **{target_character_name}**!')
         else:
             # Failed upgrade
             user_collections[user_id].remove(card)
             card['claimed_by'] = None  # Unclaim the card
-            await interaction.edit_original_response(content=f'❌ Failed! You lost {character_name} and did not gain {target_character_name}.')
+            await interaction.edit_original_response(content=f'❌ Failed! You lost **{character_name}** and did not gain **{target_character_name}**.')
 
         save_data(guild_id, cards, user_collections, user_data)
 
