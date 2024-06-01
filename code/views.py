@@ -210,13 +210,13 @@ class ImagePaginator(discord.ui.View):
         embed.color = discord.Color.red() if self.card['claimed_by'] else discord.Color.orange()
         return embed
 
-    @discord.ui.button(label="<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Left",emoji="<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
     async def previous_image(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_image = (self.current_image - 1) % len(self.card["image_urls"])
         embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="<:right:1246472426410217594>", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Right",emoji="<:right:1246472426410217594>", style=discord.ButtonStyle.secondary)
     async def next_image(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_image = (self.current_image + 1) % len(self.card["image_urls"])
         embed = await self.create_embed(interaction)
