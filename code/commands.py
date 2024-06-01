@@ -561,8 +561,10 @@ def setup_commands(bot):
         luck_purchases = user_info['luck_purchases']
 
         cost = 500 * (2 ** luck_purchases)
-        if luck_purchases >= 5:
-            cost = 500 * (2 ** 5) + 2000 * (luck_purchases - 5)
+        if luck_purchases >= 3:
+            cost = 500 * (2 ** 2) + 2000 * (luck_purchases - 5)
+            if cost >= 10000:
+                cost = 10000
 
         if coins < cost:
             await ctx.send(f"You don't have enough coins to buy luck. You need {cost} coins.")
@@ -587,9 +589,62 @@ def setup_commands(bot):
             user_info['luck'][rank] /= total
 
         save_data(guild_id, cards, user_collections, user_data)
-        next_cost = 500 * (2 ** user_info['luck_purchases']) if user_info['luck_purchases'] < 6 else 500 * (2 ** 5) + 2000 * (user_info['luck_purchases'] + 1 - 5)
+        luck_purchases += 1
+        next_cost = 500 * (2 ** luck_purchases)
+        if luck_purchases >= 3:
+            next_cost = 500 * (2 ** 2) + 2000 * (luck_purchases - 5)
+            if next_cost >= 10000:
+                next_cost = 10000
         await ctx.send(f"Your luck percentages have been increased! The next upgrade will cost {next_cost} coins.")
 
+    @bot.command(name="ci")
+    async def change_image(ctx, character_name: str, img_num: int):
+        """Command to change the first image of the character to the specified image number."""
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        cards = guild_data[guild_id][0]
+
+        # Find the card by character name
+        card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
+        if not card:
+            await ctx.send('Character not found.')
+            return
+
+        # Check if the specified image number is valid
+        if img_num < 1 or img_num > len(card['image_urls']):
+            await ctx.send(f'Invalid image number. Please choose a number between 1 and {len(card["image_urls"])}.')
+            return
+
+        # Swap the images
+        card['image_urls'][0], card['image_urls'][img_num - 1] = card['image_urls'][img_num - 1], card['image_urls'][0]
+        save_data(guild_id, *guild_data[guild_id])
+        await ctx.send(f'Image {img_num} has been set as the first image for {character_name}.')
+
+    # Add the same command in app_commands format for slash commands
+    @bot.tree.command(name="ci", description="Change the first image of a character to the specified image number")
+    @app_commands.describe(character_name="Character name", img_num="Image number")
+    async def change_image_app(interaction: discord.Interaction, character_name: str, img_num: int):
+        """Slash command to change the first image of the character to the specified image number."""
+        guild_id = str(interaction.guild.id)
+        initialize_guild(guild_id)
+        cards = guild_data[guild_id][0]
+
+        # Find the card by character name
+        card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
+        if not card:
+            await interaction.response.send_message('Character not found.', ephemeral=True)
+            return
+
+        # Check if the specified image number is valid
+        if img_num < 1 or img_num > len(card['image_urls']):
+            await interaction.response.send_message(f'Invalid image number. Please choose a number between 1 and {len(card["image_urls"])}.', ephemeral=True)
+            return
+
+        # Swap the images
+        card['image_urls'][0], card['image_urls'][img_num - 1] = card['image_urls'][img_num - 1], card['image_urls'][0]
+        save_data(guild_id, *guild_data[guild_id])
+        await interaction.response.send_message(f'Image {img_num} has been set as the first image for {character_name}.', ephemeral=True)
+    
     @bot.command(name="wish")
     async def wish(ctx, *, character_name: str):
         """Command to add a character to the user's wish list."""
