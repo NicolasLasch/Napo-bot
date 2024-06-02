@@ -4,11 +4,12 @@ from discord import app_commands
 import random
 import asyncio
 from datetime import datetime, timedelta
-from utils import save_data, load_data, rank_sort_key, get_time_until_next_reset
+from utils import save_data, load_data, rank_sort_key, get_time_until_next_reset, scores, quiz_data
 from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator
 import os
 import sys
 from config import guild_data
+import yt_dlp
 
 # Define global variables for tracking rolls
 roll_cooldowns = {}
@@ -1180,3 +1181,72 @@ def setup_commands(bot):
 
         await interaction.response.send_message("Data uploaded and loaded successfully!", ephemeral=True)
         reload_bot()
+    
+    @bot.command(name='start_quiz')
+    async def start_quiz(ctx):
+        # Create voice channel named "Quizz"
+        guild = ctx.guild
+        existing_channel = discord.utils.get(guild.voice_channels, name='Quizz')
+        if not existing_channel:
+            channel = await guild.create_voice_channel('Quizz')
+        else:
+            channel = existing_channel
+
+        await ctx.send(f'Quiz starting in {channel.mention}. Join the voice channel to participate!')
+
+        # Move bot to the voice channel
+        voice_channel = discord.utils.get(ctx.guild.voice_channels, name='Quizz')
+        if voice_channel:
+            vc = await voice_channel.connect()
+
+            await play_quiz(vc, ctx)
+        else:
+            await ctx.send("Couldn't create/find a voice channel named 'Quizz'.")
+
+    async def play_quiz(vc, ctx):
+        while True:
+            anime, youtube_url = random.choice(list(quiz_data.items()))
+
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+                'quiet': True
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info_dict = ydl.extract_info(youtube_url, download=False)
+                audio_url = info_dict['url']
+
+            vc.play(discord.FFmpegPCMAudio(audio_url), after=lambda e: print('done', e))
+            await ctx.send(f'Playing an opening, guess the anime!')
+
+            def check(m):
+                return m.channel == ctx.channel and m.content.lower() == anime.lower() and m.author.voice and m.author.voice.channel == vc.channel
+
+            try:
+                msg = await bot.wait_for('message', check=check, timeout=30.0)
+            except asyncio.TimeoutError:
+                await ctx.send(f'Time is up! The correct answer was {anime}.')
+                continue
+
+            user = msg.author
+
+            # Check if the user is already in the score dict
+            if user not in scores:
+                scores[user] = 0
+
+            scores[user] += 1
+            await ctx.send(f'{user.name} guessed it right! They now have {scores[user]} points.')
+
+            # Check if someone reached 10 points
+            if scores[user] >= 10:
+                await ctx.send(f'{user.name} has won the quiz with {scores[user]} points!')
+                break
+
+        # Cleanup: disconnect the bot and delete the voice channel
+        await vc.disconnect()
+        await vc.channel.delete()
