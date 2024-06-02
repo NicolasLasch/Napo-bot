@@ -1208,18 +1208,26 @@ def setup_commands(bot):
             anime, youtube_url = random.choice(list(quiz_data.items()))
 
             ydl_opts = {
-            'format': 'bestaudio/best',
-            'quiet': True
+                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'pcm_s16le',
+                    'preferredquality': '192',
+                }],
+                'outtmpl': 'audio.%(ext)s',
+                'quiet': True
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(youtube_url, download=False)
-                audio_url = info_dict['url']
+                audio_file = ydl.prepare_filename(info_dict)
 
-            print(f"Playing audio from URL: {audio_url}")
+            # Debugging info
+            print(f"Playing audio from file: {audio_file}")
 
             try:
-                vc.play(discord.FFmpegPCMAudio(source=audio_url, executable="ffmpeg"), after=lambda e: print('done', e))
+                # Play the audio file
+                vc.play(discord.FFmpegPCMAudio(audio_file, pipe=False), after=lambda e: print('done', e))
                 while vc.is_playing():
                     await asyncio.sleep(1)
             except Exception as e:
