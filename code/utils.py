@@ -96,5 +96,6 @@ quiz_data = {
     'Haikyuu': 'https://www.youtube.com/watch?v=attNJ5pluDE',
     'Mirai Nikki': 'https://www.youtube.com/watch?v=09r-78dfrvc',
     'Dororo': 'https://www.youtube.com/watch?v=9Q1rTavZBJo',
-    'Toradora': 'https://www.youtube.com/watch?v=BDoNRDqgmT0'
+    'Toradora': 'https://www.youtube.com/watch?v=BDoNRDqgmT0',
+    'DARLING in the FRANXX': 'https://www.youtube.com/watch?v=hCzkkHwR2gg'
 }

@@ -1219,9 +1219,8 @@ def setup_commands(bot):
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([youtube_url])
-
-            audio_file = 'audio.mp3'
+                info_dict = ydl.extract_info(youtube_url, download=True)
+                audio_file = ydl.prepare_filename(info_dict).replace('.webm', '.mp3').replace('.m4a', '.mp3')
 
             await ctx.send(f'Playing an opening, guess the anime!')
 
@@ -1242,7 +1241,7 @@ def setup_commands(bot):
                             if user not in scores:
                                 scores[user] = 0
                             scores[user] += 1
-                            await ctx.send(f'{user.name} guessed it right! They now have {scores[user]} points.')
+                            await ctx.send(f'{user.name} guessed it right! He now have **{scores[user]}** points.')
                             vc.stop()
                             correct = True
                             break
@@ -1258,12 +1257,10 @@ def setup_commands(bot):
 
             os.remove(audio_file)
 
-            # Check if someone reached 10 points
             if any(score >= 10 for score in scores.values()):
                 winner = max(scores, key=scores.get)
-                await ctx.send(f'{winner.name} has won the quiz with {scores[winner]} points!')
+                await ctx.send(f'**{winner.name}** has won the quiz with **{scores[winner]}** points!')
                 break
 
-        # Cleanup: disconnect the bot and delete the voice channel
         await vc.disconnect()
         await vc.channel.delete()
