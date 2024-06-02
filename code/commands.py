@@ -283,7 +283,7 @@ def setup_commands(bot):
             return
 
         sorted_cards = sorted(cards, key=rank_sort_key)
-        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']}){' ❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
+        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) {' ❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
         embed = discord.Embed(title="Top Characters", description=top_list)
         await ctx.send(embed=embed)
 
@@ -297,7 +297,7 @@ def setup_commands(bot):
             return
 
         sorted_cards = sorted(cards, key=rank_sort_key)
-        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']}){' ❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
+        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) {' ❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
         embed = discord.Embed(title="Top Characters", description=top_list)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -676,7 +676,7 @@ def setup_commands(bot):
             current_bar = roulette_bar[:]
             current_bar.insert(position, cursor)
             await msg.edit(content=f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\nUpgrade: {"".join(current_bar)}')
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.5)
 
         # Determine the outcome
         if random.random() < success_probability:
@@ -767,7 +767,7 @@ def setup_commands(bot):
             current_bar = roulette_bar[:]
             current_bar.insert(position, cursor)
             await interaction.edit_original_response(content=f'Attempting to upgrade **{character_name}** to **{target_character_name}**...\nChance: **{success_probability:.2%}**\nUpgrade: {"".join(current_bar)}')
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.5)
 
         # Determine the outcome
         if random.random() < success_probability:
@@ -888,18 +888,18 @@ def setup_commands(bot):
         await ctx.send(f"Character {character_name} has been removed from your wish list!")
 
     @bot.command(name="wishlist")
-    async def wishlist(ctx):
+    async def wishlist(ctx, user_id: discord.Member = None):
         """Command to display the user's wish list."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
-        user_id = str(ctx.author.id)
+        if user_id is None:
+            user_id = ctx.author
         cards, user_collections, user_data = guild_data[guild_id]
         initialize_user(guild_id, user_id)
 
         if 'wishes' not in user_data[user_id]:
             await ctx.send("You don't have any wishes.")
             return
-
         wishlist = user_data[user_id]['wishes']
         wishlist_display = []
         for character_name in wishlist:
@@ -912,7 +912,10 @@ def setup_commands(bot):
             elif card['claimed_by']:
                 status = " ❌"
             wishlist_display.append(f"{character_name}{status}")
-
+        
+        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) {' ❤️' if card['claimed_by'] else ''}" for card in wishlist_display[:10]])
+        embed = discord.Embed(title=f"{user_id.display_name}'s Wishlist", description=top_list)
+        await ctx.send(embed=embed)
         if not wishlist_display:
             await ctx.send("Your wish list is empty.")
         else:
