@@ -893,7 +893,7 @@ def setup_commands(bot):
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         if member is None:
-            member = ctx.author.id
+            member = ctx.author
         user_id = str(member.id)
         cards, user_collections, user_data = guild_data[guild_id]
         initialize_user(guild_id, user_id)
