@@ -1,4 +1,4 @@
 discord.py
 pillow
 yt-dlp
-PyNaCl
+PyNaCl 
