@@ -71,5 +71,30 @@ scores = {}
 quiz_data = {
     'Naruto': 'https://www.youtube.com/watch?v=4t__wczfpRI',
     'One Piece': 'https://www.youtube.com/watch?v=hBi9wavp2w4',
-    'Attack on Titan': 'https://www.youtube.com/watch?v=CbvQKBaDUWI'
+    'Attack on Titan': 'https://www.youtube.com/watch?v=CbvQKBaDUWI',
+    'My Hero Academia': 'https://www.youtube.com/watch?v=iYZIUtDAFIw'
+
+}
+
+quiz_data = {
+    'Naruto': 'https://www.youtube.com/watch?v=4t__wczfpRI',
+    'Naruto': 'https://www.youtube.com/watch?v=SRn99oN1p_c',
+    'One Piece': 'https://www.youtube.com/watch?v=hBi9wavp2w4',
+    'Attack on Titan': 'https://www.youtube.com/watch?v=CbvQKBaDUWI',
+    'My Hero Academia': 'https://www.youtube.com/watch?v=iYZIUtDAFIw',
+    'FullMetal Alchemists': 'https://www.youtube.com/watch?v=elyXcwunIYA',
+    'Jujutsu Kaisen': 'https://www.youtube.com/watch?v=6riDJMI-Y8U',
+    'Oshi No Ko': 'https://www.youtube.com/watch?v=ZYlaUrj2Zkk',
+    'Erased': 'https://www.youtube.com/watch?v=fodAJ-1dN3I',
+    'Mob Psycho': 'https://www.youtube.com/watch?v=Bw-5Lka7gPE',
+    'Your Lie In April': 'https://www.youtube.com/watch?v=fWRPihlt2ho',
+    'Demon Slayer': 'https://www.youtube.com/watch?v=pmanD_s7G3U',
+    'Love Is War': 'https://www.youtube.com/watch?v=lTlzDfhPtFA',
+    'Fairy Tail': 'https://www.youtube.com/watch?v=9jvVBVcZ0-Y',
+    'Horimiya': 'https://www.youtube.com/watch?v=md_jaWVuaCM',
+    'Chainsaw Man': 'https://www.youtube.com/watch?v=dFlDRhvM4L0',
+    'Haikyuu': 'https://www.youtube.com/watch?v=attNJ5pluDE',
+    'Mirai Nikki': 'https://www.youtube.com/watch?v=09r-78dfrvc',
+    'Dororo': 'https://www.youtube.com/watch?v=9Q1rTavZBJo',
+    'Toradora': 'https://www.youtube.com/watch?v=BDoNRDqgmT0'
 }
