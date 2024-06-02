@@ -1219,7 +1219,7 @@ def setup_commands(bot):
             print(f"Playing audio from URL: {audio_url}")
 
             try:
-                vc.play(discord.FFmpegPCMAudio(audio_url, executable="ffmpeg"), after=lambda e: print('done', e))
+                vc.play(discord.FFmpegPCMAudio(source=audio_url, executable="ffmpeg"), after=lambda e: print('done', e))
                 while vc.is_playing():
                     await asyncio.sleep(1)
             except Exception as e:
