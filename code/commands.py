@@ -1223,42 +1223,45 @@ def setup_commands(bot):
 
             audio_file = 'audio.mp3'
 
-            # Debugging info
-            print(f"Playing audio from file: {audio_file}")
+            await ctx.send(f'Playing an opening, guess the anime!')
+
+            def check(m):
+                return m.channel == ctx.channel and m.author.voice and m.author.voice.channel == vc.channel
+
+
+            vc.play(discord.FFmpegPCMAudio(audio_file), after=lambda e: print('done', e))
 
             try:
-                vc.play(discord.FFmpegPCMAudio(audio_file), after=lambda e: print('done', e))
+                correct = False
+                start_time = asyncio.get_event_loop().time()
                 while vc.is_playing():
-                    await asyncio.sleep(1)
+                    try:
+                        msg = await bot.wait_for('message', check=check, timeout=1)
+                        if msg.content.lower() == anime.lower():
+                            user = msg.author
+                            if user not in scores:
+                                scores[user] = 0
+                            scores[user] += 1
+                            await ctx.send(f'{user.name} guessed it right! They now have {scores[user]} points.')
+                            vc.stop()
+                            correct = True
+                            break
+                    except asyncio.TimeoutError:
+                        pass
+
+                if not correct:
+                    await asyncio.sleep(max(0, 30 - (asyncio.get_event_loop().time() - start_time)))
+
             except Exception as e:
                 print(f"Error playing audio: {e}")
                 await ctx.send(f"Error playing audio: {e}")
 
             os.remove(audio_file)
 
-            await ctx.send(f'Playing an opening, guess the anime!')
-
-            def check(m):
-                return m.channel == ctx.channel and m.content.lower() == anime.lower() and m.author.voice and m.author.voice.channel == vc.channel
-
-            try:
-                msg = await bot.wait_for('message', check=check, timeout=30.0)
-            except asyncio.TimeoutError:
-                await ctx.send(f'Time is up! The correct answer was {anime}.')
-                continue
-
-            user = msg.author
-
-            # Check if the user is already in the score dict
-            if user not in scores:
-                scores[user] = 0
-
-            scores[user] += 1
-            await ctx.send(f'{user.name} guessed it right! They now have {scores[user]} points.')
-
             # Check if someone reached 10 points
-            if scores[user] >= 10:
-                await ctx.send(f'{user.name} has won the quiz with {scores[user]} points!')
+            if any(score >= 10 for score in scores.values()):
+                winner = max(scores, key=scores.get)
+                await ctx.send(f'{winner.name} has won the quiz with {scores[winner]} points!')
                 break
 
         # Cleanup: disconnect the bot and delete the voice channel
