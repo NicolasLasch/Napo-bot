@@ -32,9 +32,8 @@ async def reset_rolls():
 @tasks.loop(minutes=1)
 async def reset_claim():
     next_reset = get_time_until_next_reset()
+    print("Next claim reset in : next_reset")
     await asyncio.sleep((next_reset).total_seconds())
-    global claim_cooldowns
-    claim_cooldowns = {}
     for guildid in guild_data:
         for memberid in guild_data[guildid][2]:
                 user_data = guild_data[guildid][2]
@@ -49,6 +48,7 @@ async def on_ready():
         synced = await bot.tree.sync()
         print(f'Synced {len(synced)} commands.')
         reset_rolls.start() 
+        reset_claim.start()
     except Exception as e:
         print(f'Error syncing commands: {e}')
 
