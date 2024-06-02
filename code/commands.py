@@ -911,9 +911,9 @@ def setup_commands(bot):
                 status = " ✅"
             elif card['claimed_by']:
                 status = " ❌"
-            wishlist_display.append(f"{character_name}{status}")
+            wishlist_display.append(f"{character_name} {status}")
         
-        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) {' ❤️' if card['claimed_by'] else ''}" for card in wishlist_display[:10]])
+        top_list = '\n'.join([card for card in wishlist_display[:10]])
         embed = discord.Embed(title=f"{user_id.display_name}'s Wishlist", description=top_list)
         await ctx.send(embed=embed)
         if not wishlist_display:
