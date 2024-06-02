@@ -912,13 +912,13 @@ def setup_commands(bot):
                 status = " ✅"
             elif card['claimed_by']:
                 status = " ❌"
-            wishlist_display.append(f"{character_name} {status}")
+            wishlist_display.append(f"**{character_name}** {status}")
     
         if not wishlist_display:
             await ctx.send("Your wish list is empty.")
         else:
             top_list = '\n'.join([card for card in wishlist_display[:10]])
-            embed = discord.Embed(title=f"{member.display_name}'s Wishlist", description=top_list)
+            embed = discord.Embed(title=f"{member.display_name}'s Wishlist", icon_url=member.avatar.url, description=top_list)
             await ctx.send(embed=embed)
     
     @bot.command(name="daily")
