@@ -1208,20 +1208,24 @@ def setup_commands(bot):
             anime, youtube_url = random.choice(list(quiz_data.items()))
 
             ydl_opts = {
-                'format': 'bestaudio/best',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }],
-                'quiet': True
+            'format': 'bestaudio/best',
+            'quiet': True
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(youtube_url, download=False)
                 audio_url = info_dict['url']
 
-            vc.play(discord.FFmpegPCMAudio(audio_url), after=lambda e: print('done', e))
+            print(f"Playing audio from URL: {audio_url}")
+
+            try:
+                vc.play(discord.FFmpegPCMAudio(audio_url, executable="ffmpeg"), after=lambda e: print('done', e))
+                while vc.is_playing():
+                    await asyncio.sleep(1)
+            except Exception as e:
+                print(f"Error playing audio: {e}")
+                await ctx.send(f"Error playing audio: {e}")
+
             await ctx.send(f'Playing an opening, guess the anime!')
 
             def check(m):
