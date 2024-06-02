@@ -249,8 +249,10 @@ def setup_commands(bot):
             return
 
         collection = user_collections[user_id]
-        collection_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in collection[:10]])
-        embed = discord.Embed(title=f"{member.display_name}'s Collection", description=collection_list)
+        collection_list = '\n'.join([f"**({card['rank']})** • {card['name']} - *{card['description']}*" for card in collection[:10]])
+        embed = discord.Embed(title="", description=collection_list)
+        embed.set_author(name=f" • {member.display_name}'s Collection", icon_url=member.avatar.url)
+        embed.set_thumbnail(url=collection[0]['image_urls'][0])
         await ctx.send(embed=embed)
 
     @bot.tree.command(name="mm", description="Display your card collection or another user's collection")
@@ -267,8 +269,10 @@ def setup_commands(bot):
             return
 
         collection = user_collections[user_id]
-        collection_list = '\n'.join([f"**{card['name']}** ({card['rank']}) - {card['description']} (Value: {card['value']})" for card in collection[:10]])
-        embed = discord.Embed(title=f"{member.display_name}'s Collection", description=collection_list)
+        collection_list = '\n'.join([f"**({card['rank']})** • {card['name']} - *{card['description']}*" for card in collection[:10]])
+        embed = discord.Embed(title="", description=collection_list)
+        embed.set_author(name=f" • {member.display_name}'s Collection", icon_url=member.avatar.url)
+        embed.set_thumbnail(url=collection[0]['image_urls'][0])
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -283,8 +287,9 @@ def setup_commands(bot):
             return
 
         sorted_cards = sorted(cards, key=rank_sort_key)
-        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) {' ❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
-        embed = discord.Embed(title="Top Characters", description=top_list)
+        top_list = '\n'.join([f"**({card['rank']})** • {card['name']} {'❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
+        embed = discord.Embed(title="• Top Characters", description=top_list)
+        embed.set_thumbnail(url=sorted_cards[0]['image_urls'][0])
         await ctx.send(embed=embed)
 
     @bot.tree.command(name="top", description="Display the top characters globally")
@@ -297,8 +302,9 @@ def setup_commands(bot):
             return
 
         sorted_cards = sorted(cards, key=rank_sort_key)
-        top_list = '\n'.join([f"**{card['name']}** ({card['rank']}) {' ❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
-        embed = discord.Embed(title="Top Characters", description=top_list)
+        top_list = '\n'.join([f"**({card['rank']})** • {card['name']} {'❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
+        embed = discord.Embed(title="• Top Characters", description=top_list)
+        embed.set_thumbnail(url=sorted_cards[0]['image_urls'][0])
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @bot.command(name="mmi")
