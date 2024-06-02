@@ -31,9 +31,8 @@ async def reset_rolls():
 
 @tasks.loop(minutes=1)
 async def reset_claim():
-    now = datetime.utcnow()
     next_reset = get_time_until_next_reset()
-    await asyncio.sleep((next_reset - now).total_seconds())
+    await asyncio.sleep((next_reset).total_seconds())
     global claim_cooldowns
     claim_cooldowns = {}
     for guildid in guild_data:
