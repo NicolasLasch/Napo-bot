@@ -903,8 +903,11 @@ def setup_commands(bot):
             return
         wishlist = user_data[user_id]['wishes']
         wishlist_display = []
+        firstcharacter = None
         for character_name in wishlist:
             card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
+            if firstcharacter == None:
+                firstcharacter = card['image_urls'][0]
             if not card:
                 continue
             status = ""
@@ -920,7 +923,6 @@ def setup_commands(bot):
             top_list = '\n'.join([card for card in wishlist_display[:10]])
             embed = discord.Embed(title="", description=top_list)
             embed.set_author(name=f" • {member.display_name}'s Wishlist", icon_url=member.avatar.url)
-            firstcharacter = wishlist[0]['image_urls'][0]
             embed.set_thumbnail(url=firstcharacter)
             await ctx.send(embed=embed)
     
