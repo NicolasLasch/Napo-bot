@@ -288,7 +288,7 @@ def setup_commands(bot):
 
         sorted_cards = sorted(cards, key=rank_sort_key)
         top_list = '\n'.join([f"**({card['rank']})** • {card['name']} {'❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
-        embed = discord.Embed(title="• Top Characters", description=top_list)
+        embed = discord.Embed(title="<:naporight:1246789280211406888> • Top Characters", description=top_list)
         embed.set_thumbnail(url=sorted_cards[0]['image_urls'][0])
         await ctx.send(embed=embed)
 
@@ -303,7 +303,7 @@ def setup_commands(bot):
 
         sorted_cards = sorted(cards, key=rank_sort_key)
         top_list = '\n'.join([f"**({card['rank']})** • {card['name']} {'❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
-        embed = discord.Embed(title="• Top Characters", description=top_list)
+        embed = discord.Embed(title="<:naporight:1246789280211406888> • Top Characters", description=top_list)
         embed.set_thumbnail(url=sorted_cards[0]['image_urls'][0])
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
