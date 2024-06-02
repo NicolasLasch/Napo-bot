@@ -1228,12 +1228,8 @@ def setup_commands(bot):
                 return m.channel == ctx.channel and m.author.voice and m.author.voice.channel == vc.channel
 
 
-            vc.play(discord.FFmpegPCMAudio(
-                source=audio_file,
-                executable="ffmpeg",
-                before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-                options="-vn"
-            ), after=lambda e: print('done', e))
+            vc.play(discord.FFmpegPCMAudio(audio_file, options="-b:a 192k"), after=lambda e: print('done', e))
+
             try:
                 correct = False
                 start_time = asyncio.get_event_loop().time()
