@@ -919,7 +919,9 @@ def setup_commands(bot):
         else:
             top_list = '\n'.join([card for card in wishlist_display[:10]])
             embed = discord.Embed(title="", description=top_list)
-            embed.set_author(name=f"{member.display_name}'s Wishlist", icon_url=member.avatar.url)
+            embed.set_author(name=f" • {member.display_name}'s Wishlist", icon_url=member.avatar.url)
+            firstcharacter = wishlist[0]['image_urls'][0]
+            embed.set_thumbnail(url=firstcharacter)
             await ctx.send(embed=embed)
     
     @bot.command(name="daily")
