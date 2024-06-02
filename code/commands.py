@@ -888,12 +888,13 @@ def setup_commands(bot):
         await ctx.send(f"Character {character_name} has been removed from your wish list!")
 
     @bot.command(name="wishlist")
-    async def wishlist(ctx, user_id: discord.Member = None):
+    async def wishlist(ctx, member: discord.Member = None):
         """Command to display the user's wish list."""
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
-        if user_id is None:
-            user_id = ctx.author
+        if member is None:
+            member = ctx.author.id
+        user_id = str(member.id)
         cards, user_collections, user_data = guild_data[guild_id]
         initialize_user(guild_id, user_id)
 
