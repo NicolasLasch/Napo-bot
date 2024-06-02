@@ -918,7 +918,8 @@ def setup_commands(bot):
             await ctx.send("Your wish list is empty.")
         else:
             top_list = '\n'.join([card for card in wishlist_display[:10]])
-            embed = discord.Embed(title=f"{member.display_name}'s Wishlist", icon_url=member.avatar.url, description=top_list)
+            embed = discord.Embed(title="", description=top_list)
+            embed.set_author(name=f"{member.display_name}'s Wishlist", icon_url=member.avatar.url)
             await ctx.send(embed=embed)
     
     @bot.command(name="daily")
