@@ -1255,7 +1255,8 @@ def setup_commands(bot):
 
                 if not correct:
                     await asyncio.sleep(max(0, 30 - (asyncio.get_event_loop().time() - start_time)))
-
+                    await ctx.send(f'Music skipped because no one found, it was : {anime}')
+                    
             except Exception as e:
                 print(f"Error playing audio: {e}")
                 await ctx.send(f"Error playing audio: {e}")
