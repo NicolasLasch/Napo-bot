@@ -1184,7 +1184,6 @@ def setup_commands(bot):
     
     @bot.command(name='start_quiz')
     async def start_quiz(ctx):
-        # Create voice channel named "Quizz"
         guild = ctx.guild
         existing_channel = discord.utils.get(guild.voice_channels, name='Quizz')
         if not existing_channel:
@@ -1220,7 +1219,8 @@ def setup_commands(bot):
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(youtube_url, download=True)
-                audio_file = ydl.prepare_filename(info_dict).replace('.webm', '.mp3').replace('.m4a', '.mp3')
+                audio_file = ydl.prepare_filename(info_dict).replace('.m4a', '.webm')
+                
 
             await ctx.send(f'Playing an opening, guess the anime!')
 
@@ -1228,7 +1228,7 @@ def setup_commands(bot):
                 return m.channel == ctx.channel and m.author.voice and m.author.voice.channel == vc.channel
 
 
-            vc.play(discord.FFmpegPCMAudio(audio_file, options="-af 'volume=0.5, aecho=0.8:0.9:1000:0.3'"), after=lambda e: print('done', e))
+            vc.play(discord.FFmpegOpusAudio.from_probe(audio_file))
 
 
             try:
@@ -1246,6 +1246,11 @@ def setup_commands(bot):
                             vc.stop()
                             correct = True
                             break
+                        elif msg.content.lower() == 'skip':
+                            vc.stop()
+                            correct = True
+                            await ctx.send(f'{user.name} skipped because the song is unknow, it was : {anime}')
+                            break
                     except asyncio.TimeoutError:
                         pass
 
@@ -1261,7 +1266,7 @@ def setup_commands(bot):
             if any(score >= 10 for score in scores.values()):
                 winner = max(scores, key=scores.get)
                 await ctx.send(f'**{winner.name}** has won the quiz with **{scores[winner]}** points!')
+                score = {}
                 break
 
         await vc.disconnect()
-        await vc.channel.delete()

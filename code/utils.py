@@ -128,5 +128,5 @@ quiz_data = {
     'Steins;Gate': 'https://www.youtube.com/watch?v=1xJbdY9B3A8',
     'Soul Eater': 'https://www.youtube.com/watch?v=-eYK3YP524A',
     'Food Wars': 'https://www.youtube.com/watch?v=sCqmg9CMzv4',
-    'my dress up darling': 'https://www.youtube.com/watch?v=oG4eu4HMtbo'
+    'My Dress Up Darling': 'https://www.youtube.com/watch?v=oG4eu4HMtbo'
 }
