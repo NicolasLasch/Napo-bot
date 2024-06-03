@@ -1220,7 +1220,6 @@ def setup_commands(bot):
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(youtube_url, download=True)
                 audio_file = ydl.prepare_filename(info_dict).replace('.m4a', '.webm')
-                
 
             await ctx.send(f'Playing an opening, guess the anime!')
 
@@ -1228,7 +1227,7 @@ def setup_commands(bot):
                 return m.channel == ctx.channel and m.author.voice and m.author.voice.channel == vc.channel
 
 
-            vc.play(discord.FFmpegOpusAudio.from_probe(audio_file))
+            vc.play(discord.FFmpegPCMAudio(audio_file, options="-af 'volume=0.5, aecho=0.8:0.9:1000:0.3'"), after=lambda e: print('done', e))
 
 
             try:
