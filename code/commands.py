@@ -1248,7 +1248,7 @@ def setup_commands(bot):
                         elif msg.content.lower() == 'skip':
                             vc.stop()
                             correct = True
-                            await ctx.send(f'{user.name} skipped because the song is unknow, it was : {anime}')
+                            await ctx.send(f'Music skipped because the song is unknow, it was : {anime}')
                             break
                     except asyncio.TimeoutError:
                         pass
