@@ -1264,7 +1264,7 @@ def setup_commands(bot):
                             break
                         elif msg.content.lower() == 'end':
                             scores['SKIP'] = 10
-                            await ctx.send(f'{user.name} guessed it right! The correct answer was {matched_anime}. They now have **{scores[user]}** points.')
+                            await ctx.send(f'Game ended because of !end. They now have **{scores[user]}** points.')
                             vc.stop()
                             correct = True
                             break
