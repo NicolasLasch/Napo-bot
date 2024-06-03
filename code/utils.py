@@ -70,14 +70,6 @@ scores = {}
 
 quiz_data = {
     'Naruto': 'https://www.youtube.com/watch?v=4t__wczfpRI',
-    'One Piece': 'https://www.youtube.com/watch?v=hBi9wavp2w4',
-    'Attack on Titan': 'https://www.youtube.com/watch?v=CbvQKBaDUWI',
-    'My Hero Academia': 'https://www.youtube.com/watch?v=iYZIUtDAFIw'
-
-}
-
-quiz_data = {
-    'Naruto': 'https://www.youtube.com/watch?v=4t__wczfpRI',
     'Naruto': 'https://www.youtube.com/watch?v=SRn99oN1p_c',
     'One Piece': 'https://www.youtube.com/watch?v=hBi9wavp2w4',
     'Attack on Titan': 'https://www.youtube.com/watch?v=CbvQKBaDUWI',

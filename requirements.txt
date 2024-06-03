@@ -2,3 +2,4 @@ discord.py
 pillow
 yt-dlp
 PyNaCl 
+fuzzywuzzy
