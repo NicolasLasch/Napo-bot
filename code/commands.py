@@ -1227,7 +1227,7 @@ def setup_commands(bot):
                 return m.channel == ctx.channel and m.author.voice and m.author.voice.channel == vc.channel
 
 
-            vc.play(discord.FFmpegPCMAudio(audio_file, options="-af 'volume=0.5, aecho=0.8:0.9:1000:0.3'"), after=lambda e: print('done', e))
+            vc.play(discord.FFmpegPCMAudio(audio_file, options="-af"), after=lambda e: print('done', e))
 
 
             try:
