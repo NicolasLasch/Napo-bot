@@ -1264,7 +1264,7 @@ def setup_commands(bot):
                             break
                         elif msg.content.lower() == 'end':
                             scores['SKIP'] = 10
-                            await ctx.send(f'Game ended because of !end. They now have **{scores[user]}** points.')
+                            await ctx.send(f'Game ended because of !end.')
                             vc.stop()
                             correct = True
                             break
@@ -1282,9 +1282,12 @@ def setup_commands(bot):
             os.remove(audio_file)
 
             if any(score >= 10 for score in scores.values()):
+                if scores['SKIP'] == 10:
+                    scores.clear()
+                    break
                 winner = max(scores, key=scores.get)
                 await ctx.send(f'**{winner.name}** has won the quiz with **{scores[winner]}** points!')
-                scores.clear()  # Clear the scores after the game
+                scores.clear()
                 break
 
         await vc.disconnect()
