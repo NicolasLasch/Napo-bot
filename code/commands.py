@@ -1198,7 +1198,12 @@ def setup_commands(bot):
         # Move bot to the voice channel
         voice_channel = discord.utils.get(ctx.guild.voice_channels, name='Quizz')
         if voice_channel:
-            vc = await voice_channel.connect()
+            vc = ctx.voice_client
+            if vc:
+                if vc.channel != voice_channel:
+                    await vc.move_to(voice_channel)
+            else:
+                vc = await voice_channel.connect()
 
             await play_quiz(vc, ctx)
         else:
@@ -1219,18 +1224,22 @@ def setup_commands(bot):
                 'quiet': True
             }
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info_dict = ydl.extract_info(youtube_url, download=True)
-                audio_file = ydl.prepare_filename(info_dict).replace('.webm', '.mp3').replace('.m4a', '.mp3')
+            audio_file = None
+            while not audio_file:
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info_dict = ydl.extract_info(youtube_url, download=True)
+                        audio_file = ydl.prepare_filename(info_dict).replace('.webm', '.mp3').replace('.m4a', '.mp3')
+                except Exception as e:
+                    await ctx.send(f"Error downloading audio from YouTube: {e}")
+                    anime, youtube_url = random.choice(list(quiz_data.items()))
 
             await ctx.send(f'Playing an opening, guess the anime!')
 
             def check(m):
                 return m.channel == ctx.channel and m.author.voice and m.author.voice.channel == vc.channel
 
-
             vc.play(discord.FFmpegPCMAudio(audio_file), after=lambda e: print('done', e))
-
 
             try:
                 correct = False
@@ -1239,12 +1248,12 @@ def setup_commands(bot):
                     try:
                         msg = await bot.wait_for('message', check=check, timeout=1)
                         matched_anime, score = process.extractOne(msg.content, quiz_data.keys(), scorer=fuzz.ratio)
-                        if score >= 80 and anime == matched_anime:
+                        if score >= 80 and matched_anime == anime:
                             user = msg.author
                             if user not in scores:
                                 scores[user] = 0
                             scores[user] += 1
-                            await ctx.send(f'{user.name} guessed it right, it was {anime}! He now has **{scores[user]}** points.')
+                            await ctx.send(f'{user.name} guessed it right! The correct answer was {matched_anime}. They now have **{scores[user]}** points.')
                             vc.stop()
                             correct = True
                             break
@@ -1253,30 +1262,23 @@ def setup_commands(bot):
                             correct = True
                             await ctx.send(f'Music skipped because the song is unknown, it was: {anime}')
                             break
-                        elif msg.content.lower() == 'end':
-                            user = msg.autor
-                            score[user] = 10
-                            vc.stop()
-                            correct = True
-                            await ctx.send(f'Score force set to 10 in order to end the game')
-                            break
                     except asyncio.TimeoutError:
                         pass
 
                 if not correct:
                     await asyncio.sleep(max(0, 30 - (asyncio.get_event_loop().time() - start_time)))
-                    await ctx.send(f'Music skipped because no one found, it was : {anime}')
-                    
+                    await ctx.send(f'Music skipped because no one found it, it was: {anime}')
+                        
             except Exception as e:
                 print(f"Error playing audio: {e}")
                 await ctx.send(f"Error playing audio: {e}")
 
-            os.remove(audio_file) 
+            os.remove(audio_file)
 
             if any(score >= 10 for score in scores.values()):
                 winner = max(scores, key=scores.get)
                 await ctx.send(f'**{winner.name}** has won the quiz with **{scores[winner]}** points!')
-                score = {}
+                scores.clear()  # Clear the scores after the game
                 break
 
         await vc.disconnect()
