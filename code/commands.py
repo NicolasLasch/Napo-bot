@@ -10,6 +10,8 @@ import os
 import sys
 from config import guild_data
 import yt_dlp
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
 
 # Define global variables for tracking rolls
 roll_cooldowns = {}
@@ -1236,19 +1238,20 @@ def setup_commands(bot):
                 while vc.is_playing():
                     try:
                         msg = await bot.wait_for('message', check=check, timeout=1)
-                        if msg.content.lower() == anime.lower():
+                        matched_anime, score = process.extractOne(msg.content, quiz_data.keys(), scorer=fuzz.ratio)
+                        if score >= 80 and anime == matched_anime:
                             user = msg.author
                             if user not in scores:
                                 scores[user] = 0
                             scores[user] += 1
-                            await ctx.send(f'{user.name} guessed it right! He now have **{scores[user]}** points.')
+                            await ctx.send(f'{user.name} guessed it right, it was {anime}! He now has **{scores[user]}** points.')
                             vc.stop()
                             correct = True
                             break
                         elif msg.content.lower() == 'skip':
                             vc.stop()
                             correct = True
-                            await ctx.send(f'Music skipped because the song is unknow, it was : {anime}')
+                            await ctx.send(f'Music skipped because the song is unknown, it was: {anime}')
                             break
                     except asyncio.TimeoutError:
                         pass
