@@ -1262,6 +1262,12 @@ def setup_commands(bot):
                             correct = True
                             await ctx.send(f'Music skipped because the song is unknown, it was: {anime}')
                             break
+                        elif msg.content.lower() == 'end':
+                            scores['SKIP'] = 10
+                            await ctx.send(f'{user.name} guessed it right! The correct answer was {matched_anime}. They now have **{scores[user]}** points.')
+                            vc.stop()
+                            correct = True
+                            break
                     except asyncio.TimeoutError:
                         pass
 
