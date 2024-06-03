@@ -1271,7 +1271,7 @@ def setup_commands(bot):
                 print(f"Error playing audio: {e}")
                 await ctx.send(f"Error playing audio: {e}")
 
-            os.remove(audio_file)
+            os.remove(audio_file) 
 
             if any(score >= 10 for score in scores.values()):
                 winner = max(scores, key=scores.get)
