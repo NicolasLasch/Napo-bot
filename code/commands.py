@@ -1219,7 +1219,7 @@ def setup_commands(bot):
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(youtube_url, download=True)
-                audio_file = ydl.prepare_filename(info_dict).replace('.m4a', '.webm')
+                audio_file = ydl.prepare_filename(info_dict).replace('.webm', '.mp3').replace('.m4a', '.mp3')
 
             await ctx.send(f'Playing an opening, guess the anime!')
 
