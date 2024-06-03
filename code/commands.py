@@ -1253,6 +1253,13 @@ def setup_commands(bot):
                             correct = True
                             await ctx.send(f'Music skipped because the song is unknown, it was: {anime}')
                             break
+                        elif msg.content.lower() == 'end':
+                            user = msg.autor
+                            score[user] = 10
+                            vc.stop()
+                            correct = True
+                            await ctx.send(f'Score force set to 10 in order to end the game')
+                            break
                     except asyncio.TimeoutError:
                         pass
 
