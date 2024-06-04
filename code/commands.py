@@ -1248,7 +1248,7 @@ def setup_commands(bot):
                     try:
                         msg = await bot.wait_for('message', check=check, timeout=1)
                         matched_anime, score = process.extractOne(msg.content, quiz_data.keys(), scorer=fuzz.ratio)
-                        if score >= 80 and matched_anime == anime:
+                        if score >= 70 and matched_anime == anime:
                             user = msg.author
                             if user not in scores:
                                 scores[user] = 0
