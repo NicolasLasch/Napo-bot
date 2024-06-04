@@ -1280,7 +1280,7 @@ def setup_commands(bot):
 
             os.remove(audio_file)
 
-            if any(score >= 10 for score in scores.values()):
+            if any(score >= 10 for score in scores.values() or fastend == True):
                 if fastend == True:
                     await ctx.send(f'Game ended because of !end.')
                     scores.clear()
