@@ -1263,8 +1263,7 @@ def setup_commands(bot):
                             await ctx.send(f'Music skipped because the song is unknown, it was: {anime}')
                             break
                         elif msg.content.lower() == 'end':
-                            scores['SKIP'] = 10
-                            await ctx.send(f'Game ended because of !end.')
+                            fastend = True
                             vc.stop()
                             correct = True
                             break
@@ -1282,12 +1281,15 @@ def setup_commands(bot):
             os.remove(audio_file)
 
             if any(score >= 10 for score in scores.values()):
-                if scores['SKIP'] == 10:
+                if fastend == True:
+                    await ctx.send(f'Game ended because of !end.')
+                    scores.clear()
+                    fastend = False
+                    break
+                else: 
+                    winner = max(scores, key=scores.get)
+                    await ctx.send(f'**{winner.name}** has won the quiz with **{scores[winner]}** points!')
                     scores.clear()
                     break
-                winner = max(scores, key=scores.get)
-                await ctx.send(f'**{winner.name}** has won the quiz with **{scores[winner]}** points!')
-                scores.clear()
-                break
 
         await vc.disconnect()
