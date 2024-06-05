@@ -1381,7 +1381,7 @@ def setup_commands(bot):
             price = {'SS': 1488, 'S': 1000, 'A': 800, 'B': 600, 'C': 350, 'D': 150, 'E': 38}[rank]
 
             # Fetch profile picture
-            async with ctx.session.get(profile_picture) as resp:
+            async with ctx.bot.http_session.get(profile_picture) as resp:
                 if resp.status != 200:
                     await ctx.send(f"Failed to fetch profile picture for {nickname}.")
                     continue
