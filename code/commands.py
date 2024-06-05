@@ -1324,9 +1324,12 @@ def setup_commands(bot):
         response = requests.post(upload_url, headers=headers, data=data, files=files)
 
         if response.status_code == 200:
-            print(response)
-            response_data = response
-            image_url = response_data['data']['images'][0]['link']
-            await ctx.send(f"Image uploaded: {image_url}")
+            try:
+                response_data = response.json()
+                image_url = response_data['data']['images'][0]['link']
+                await ctx.send(f"Image uploaded: {image_url}")
+            except requests.exceptions.JSONDecodeError:
+                await ctx.send("Failed to parse JSON response from the server.")
+                print(f"Response content: {response.content}")
         else:
             await ctx.send("Failed to upload image.")
