@@ -1363,47 +1363,48 @@ def setup_commands(bot):
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         
-        for member in ctx.guild.members:
-            user_id = str(member.id)
-            nickname = member.display_name
-            profile_picture = member.avatar.url if member.avatar else member.default_avatar.url
+        async with aiohttp.ClientSession() as session:
+            for member in ctx.guild.members:
+                user_id = str(member.id)
+                nickname = member.display_name
+                profile_picture = member.avatar.url if member.avatar else member.default_avatar.url
 
-            if ctx.guild.owner_id == member.id:
-                rank = 'SS'
-            elif any(role.permissions.administrator for role in member.roles):
-                rank = 'S'
-            elif any(role.name.lower() == 'la squad' for role in member.roles):
-                rank = 'A'
-            else:
-                rank = random.choice(['B', 'C', 'D', 'E'])
-            
-            rank_description = rank
-            price = {'SS': 1488, 'S': 1000, 'A': 800, 'B': 600, 'C': 350, 'D': 150, 'E': 38}[rank]
+                if ctx.guild.owner_id == member.id:
+                    rank = 'SS'
+                elif any(role.permissions.administrator for role in member.roles):
+                    rank = 'S'
+                elif any(role.name.lower() == 'mod' for role in member.roles):
+                    rank = 'A'
+                else:
+                    rank = random.choice(['B', 'C', 'D', 'E'])
+                
+                rank_description = rank
+                price = {'SS': 500, 'S': 400, 'A': 300, 'B': 200, 'C': 100, 'D': 50, 'E': 20}[rank]
 
-            # Fetch profile picture
-            async with session.get(profile_picture) as resp:
-                if resp.status != 200:
-                    await ctx.send(f"Failed to fetch profile picture for {nickname}.")
+                # Fetch profile picture
+                async with session.get(profile_picture) as resp:
+                    if resp.status != 200:
+                        await ctx.send(f"Failed to fetch profile picture for {nickname}.")
+                        continue
+                    image_data = await resp.read()
+                
+                img_url = await upload_image(image_data)
+                if not img_url:
+                    await ctx.send(f"Failed to upload image for {nickname}.")
                     continue
-                image_data = await resp.read()
-            
-            img_url = await upload_image(image_data)
-            if not img_url:
-                await ctx.send(f"Failed to upload image for {nickname}.")
-                continue
-            
-            card = {
-                'name': nickname,
-                'rank': rank,
-                'description': rank_description,
-                'price': price,
-                'img': img_url,
-                'claimed_by': None
-            }
+                
+                card = {
+                    'name': nickname,
+                    'rank': rank,
+                    'description': rank_description,
+                    'price': price,
+                    'img': img_url,
+                    'claimed_by': None
+                }
 
-            initialize_user(guild_id, user_id)
-            guild_data[guild_id][2][user_id]['cards'] = guild_data[guild_id][2][user_id].get('cards', [])
-            guild_data[guild_id][2][user_id]['cards'].append(card)
+                initialize_user(guild_id, user_id)
+                guild_data[guild_id][2][user_id]['cards'] = guild_data[guild_id][2][user_id].get('cards', [])
+                guild_data[guild_id][2][user_id]['cards'].append(card)
 
         save_data(guild_id, guild_data[guild_id])
         await ctx.send("Server initialized successfully with member cards.")
