@@ -257,7 +257,7 @@ def setup_commands(bot):
             return
 
         collection = user_collections[user_id]
-        paginator = CollectionPaginator(guild_id, collection, member.display_name)
+        paginator = CollectionPaginator(guild_id, collection, member)
         await paginator.send_initial_message(ctx)
 
     @bot.tree.command(name="mm", description="Display your card collection or another user's collection")
@@ -1450,23 +1450,26 @@ def setup_commands(bot):
             await ctx.send("An auction for this character is already active.")
             return
 
+        # Remove character from user's collection and reset claimed_by
+        character['claimed_by'] = None
+        user_collections[user_id].remove(character)
+        save_data(guild_id, cards, user_collections, user_data)
+
         # Create auction entry
         auction_data = {
             "character": character,
             "starting_price": starting_price,
             "current_price": starting_price,
             "current_bidder": None,
-            "end_time": datetime.utcnow() + timedelta(seconds=60)
+            "end_time": datetime.utcnow() + timedelta(seconds=60),
+            "auctioneer": user_id
         }
         active_auctions[character_name.lower()] = auction_data
-
-        # Remove character from user's collection
-        user_collections[user_id].remove(character)
-        save_data(guild_id, cards, user_collections, user_data)
 
         await ctx.send(f"Auction started for **{character_name}** with a starting price of {starting_price} coins!")
 
         await check_auction_timeout(ctx, character_name.lower(), auction_data)
+
 
     async def check_auction_timeout(ctx, character_name, auction_data):
         while datetime.utcnow() < auction_data['end_time']:
@@ -1515,6 +1518,11 @@ def setup_commands(bot):
         # Check if the user has enough coins
         if bid_amount > user_data[user_id]['coins']:
             await ctx.send("You don't have enough coins to place this bid.")
+            return
+        
+        # Check if the user has enough coins
+        if user_id == auction_data['auctioneer']:
+            await ctx.send("Youcannot bid on your own auction.")
             return
 
         # Update the auction
