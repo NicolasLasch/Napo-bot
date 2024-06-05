@@ -1414,3 +1414,26 @@ def setup_commands(bot):
         
         save_data(guild_id, cards, user_collections, user_data)
         await ctx.send("Server initialized successfully with member cards.")
+
+    @is_admin()
+    @bot.command()
+    async def change_rank(ctx, card_name: str, new_rank: str):
+        valid_ranks = ['SS', 'S', 'A', 'B', 'C', 'D', 'E']
+        if new_rank not in valid_ranks:
+            await ctx.send(f"Invalid rank. Valid ranks are: {', '.join(valid_ranks)}")
+            return
+
+        guild_id = str(ctx.guild.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+
+        # Find the card by name
+        for card in cards:
+            if card['name'].lower() == card_name.lower():
+                card['rank'] = new_rank
+                card['description'] = new_rank
+                card['value'] = {'SS': 500, 'S': 400, 'A': 300, 'B': 200, 'C': 100, 'D': 50, 'E': 20}[new_rank]
+                save_data(guild_id, cards, user_collections, user_data)
+                await ctx.send(f"The rank of card '{card_name}' has been changed to {new_rank}.")
+                return
+
+        await ctx.send(f"No card found with the name '{card_name}'.")
