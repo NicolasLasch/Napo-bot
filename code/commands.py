@@ -1392,8 +1392,9 @@ def setup_commands(bot):
                         await ctx.send(f"Failed to fetch profile picture for {nickname}.")
                         continue
                     image_data = await resp.read()
-                
-                img_url = await upload_image(image_data)
+                img_url = []
+                img = await upload_image(image_data)
+                img_url.append = img
                 if not img_url:
                     await ctx.send(f"Failed to upload image for {nickname}.")
                     continue
