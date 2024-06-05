@@ -1044,8 +1044,10 @@ def setup_commands(bot):
                         user_collections[receiver_id].remove(receiver_card)
                         receiver_card['claimed_by'] = sender_id
                         user_collections[sender_id].append(receiver_card)
+                    
+                    cards, user_collections, user_data = guild_data[guild_id]
 
-                    save_data(guild_id, *guild_data[guild_id])
+                    save_data(guild_id, *guild_data[guild_id], user_collections, user_data)
                     await ctx.send(f'Trade successful! {sender.display_name} traded {", ".join(sender_cards)} with {user.display_name} for {", ".join(receiver_cards)}.')
                 else:
                     await ctx.send('Trade cancelled.')
@@ -1107,8 +1109,9 @@ def setup_commands(bot):
                         user_collections[receiver_id].remove(receiver_card)
                         receiver_card['claimed_by'] = sender_id
                         user_collections[sender_id].append(receiver_card)
-
-                    save_data(guild_id, *guild_data[guild_id])
+                        
+                    cards, user_collections, user_data = guild_data[guild_id]
+                    save_data(guild_id, *guild_data[guild_id], user_collections, user_data)
                     await interaction.channel.send(f'Trade successful! {sender.display_name} traded {", ".join(sender_cards)} with {user.display_name} for {", ".join(receiver_cards)}.')
                 else:
                     await interaction.channel.send('Trade cancelled.')
@@ -1407,8 +1410,9 @@ def setup_commands(bot):
                 initialize_user(guild_id, user_id)
                 guild_data[guild_id][2][user_id]['cards'] = guild_data[guild_id][2][user_id].get('cards', [])
                 guild_data[guild_id][2][user_id]['cards'].append(card)
-
-        save_data(guild_id, guild_data[guild_id])
+        
+        cards, user_collections, user_data = guild_data[guild_id]
+        save_data(guild_id, *guild_data[guild_id], user_collections, user_data)
         await ctx.send("Server initialized successfully with member cards.")
 
     # Add necessary setup functions
