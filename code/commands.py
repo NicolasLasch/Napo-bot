@@ -1399,15 +1399,15 @@ def setup_commands(bot):
                 
                 card = {
                     'name': nickname,
+                    'value': price,
                     'rank': rank,
                     'description': rank_description,
-                    'price': price,
-                    'img': img_url,
+                    'image_urls': img_url,
                     'claimed_by': None
                 }
                 cards.append(card)
         
-        save_data(guild_id, *guild_data[guild_id])
+        save_data(guild_id, cards, user_collections, user_data)
         await ctx.send("Server initialized successfully with member cards.")
 
     # Add necessary setup functions
