@@ -280,8 +280,7 @@ class CollectionPaginator(discord.ui.View):
         end_index = start_index + self.items_per_page
         total_pages = (len(self.collection) + self.items_per_page - 1) // self.items_per_page
         collection_list = '\n'.join([f"**({card['rank']})** • {card['name']} - *{card['description']}*" for card in self.collection[start_index:end_index]])
-        embed = discord.Embed(title="", description=collection_list)
-        embed.set_author(name=f"<:naporight:1246789280211406888> • {self.member.display_name}'s Collection")
+        embed = discord.Embed(title=f"<:naporight:1246789280211406888> • {self.member.display_name}'s Collection", description=collection_list)
         embed.set_thumbnail(url=self.collection[0]['image_urls'][0])
         embed.set_footer(text=f"Page {self.current_page + 1} of {total_pages}")
         return embed
@@ -319,7 +318,7 @@ class BlackMarketPaginator(discord.ui.View):
         total_pages = (len(self.black_market) + self.items_per_page - 1) // self.items_per_page
         listings = list(self.black_market.values())[start_index:end_index]
         listings_text = [f"**{item['character']['name']}** - {item['price']} coins (Seller: <@{item['seller_id']}>)" for item in listings]
-        embed = discord.Embed(title=" • Black Market Listings", description="\n".join(listings_text))
+        embed = discord.Embed(title="<:naporight:1246789280211406888> • Black Market Listings", description="\n".join(listings_text))
         embed.set_footer(text=f"Page {self.current_page + 1} of {total_pages}")
         return embed
 
