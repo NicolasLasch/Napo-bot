@@ -1394,10 +1394,11 @@ def setup_commands(bot):
                     image_data = await resp.read()
                 img_url = []
                 img = await upload_image(image_data)
-                img_url.append = img
-                if not img_url:
+                if not img:
                     await ctx.send(f"Failed to upload image for {nickname}.")
                     continue
+                
+                img_url.append(img)
                 
                 card = {
                     'name': nickname,
@@ -1411,18 +1412,3 @@ def setup_commands(bot):
         
         save_data(guild_id, cards, user_collections, user_data)
         await ctx.send("Server initialized successfully with member cards.")
-
-    # Add necessary setup functions
-    def initialize_guild(guild_id):
-        if guild_id not in guild_data:
-            guild_data[guild_id] = load_data(guild_id)
-
-    def initialize_user(guild_id, user_id):
-        if user_id not in guild_data[guild_id][2]:
-            guild_data[guild_id][2][user_id] = {
-                'coins': 0,
-                'luck_purchases': 0,
-                'luck': base_probabilities,
-                'rolls': max_rolls_per_hour,
-                'claims': max_claims_per_3_hours
-            }
