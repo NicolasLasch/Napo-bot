@@ -1319,10 +1319,13 @@ def setup_commands(bot):
         upload_url = "https://api.imgchest.com/v1/post"
         files = {'images[]': ('image.jpg', buffer, 'image/jpeg')}
         data = {'title': 'Uploaded via Discord Bot', 'privacy': 'hidden'}
-        headers = {'Authorization': 'SpEMZxXfd0VCVLPTyLbslGGGls3Ahei5a2RQcZqZ3263746c'}
+        headers = {'Authorization': 'Bearer SpEMZxXfd0VCVLPTyLbslGGGls3Ahei5a2RQcZqZ3263746c'}
         
         response = requests.post(upload_url, headers=headers, data=data, files=files)
 
+        print(f"Response status code: {response.status_code}")
+        print(f"Response content: {response.content.decode('utf-8')}")
+        
         if response.status_code == 200:
             try:
                 response_data = response.json()
