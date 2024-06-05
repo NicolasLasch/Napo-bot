@@ -1309,7 +1309,7 @@ def setup_commands(bot):
         # Resize the image
         with Image.open(io.BytesIO(image_data)) as img:
             img = img.resize((225, 350))
-            
+            img = img.convert("RGB")
             # Save the image to a bytes buffer
             buffer = io.BytesIO()
             img.save(buffer, format="JPEG")
