@@ -1318,7 +1318,7 @@ def setup_commands(bot):
         # Upload the image to imgchest.com
         upload_url = "https://api.imgchest.com/v1/post"
         files = {'images[]': ('image.jpg', buffer, 'image/jpeg')}
-        data = {'title': 'Uploaded via Discord Bot', 'privacy': 'hidden'}
+        data = {'title': 'Napo Discord Bot', 'privacy': 'hidden'}
         headers = {'Authorization': 'Bearer SpEMZxXfd0VCVLPTyLbslGGGls3Ahei5a2RQcZqZ3263746c'}
         
         response = requests.post(upload_url, headers=headers, data=data, files=files)
@@ -1336,3 +1336,89 @@ def setup_commands(bot):
                 print(f"Response content: {response.content}")
         else:
             await ctx.send("Failed to upload image.")
+            
+    async def upload_image(image_data):
+        with Image.open(io.BytesIO(image_data)) as img:
+            img = img.resize((225, 350))
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG")
+            buffer.seek(0)
+        
+        upload_url = "https://api.imgchest.com/v1/post"
+        files = {'images[]': ('image.jpg', buffer, 'image/jpeg')}
+        data = {'title': 'Napo Discord Bot', 'privacy': 'hidden'}
+        headers = {'Authorization': 'Bearer SpEMZxXfd0VCVLPTyLbslGGGls3Ahei5a2RQcZqZ3263746c'}
+        
+        response = requests.post(upload_url, headers=headers, data=data, files=files)
+        if response.status_code == 200:
+            response_data = response.json()
+            return response_data['data']['images'][0]['link']
+        else:
+            print(f"Failed to upload image. HTTP Status Code: {response.status_code}")
+            print(f"Response content: {response.content.decode('utf-8')}")
+            return None
+
+    @bot.command()
+    async def init_server(ctx):
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        
+        for member in ctx.guild.members:
+            user_id = str(member.id)
+            nickname = member.display_name
+            profile_picture = member.avatar_url_as(format='jpeg')
+
+            if ctx.guild.owner_id == member.id:
+                rank = 'SS'
+            elif any(role.permissions.administrator for role in member.roles):
+                rank = 'S'
+            elif any(role.name.lower() == 'la squad' for role in member.roles):
+                rank = 'A'
+            else:
+                rank = random.choice(['B', 'C', 'D', 'E'])
+            
+            rank_description = rank
+            price = {'SS': 1488, 'S': 1000, 'A': 800, 'B': 600, 'C': 350, 'D': 150, 'E': 38}[rank]
+
+            # Fetch profile picture
+            async with ctx.session.get(profile_picture) as resp:
+                if resp.status != 200:
+                    await ctx.send(f"Failed to fetch profile picture for {nickname}.")
+                    continue
+                image_data = await resp.read()
+            
+            img_url = await upload_image(image_data)
+            if not img_url:
+                await ctx.send(f"Failed to upload image for {nickname}.")
+                continue
+            
+            card = {
+                'name': nickname,
+                'rank': rank,
+                'description': rank_description,
+                'price': price,
+                'img': img_url,
+                'claimed_by': None
+            }
+
+            initialize_user(guild_id, user_id)
+            guild_data[guild_id][2][user_id]['cards'] = guild_data[guild_id][2][user_id].get('cards', [])
+            guild_data[guild_id][2][user_id]['cards'].append(card)
+
+        save_data(guild_id, guild_data[guild_id])
+        await ctx.send("Server initialized successfully with member cards.")
+
+    # Add necessary setup functions
+    def initialize_guild(guild_id):
+        if guild_id not in guild_data:
+            guild_data[guild_id] = load_data(guild_id)
+
+    def initialize_user(guild_id, user_id):
+        if user_id not in guild_data[guild_id][2]:
+            guild_data[guild_id][2][user_id] = {
+                'coins': 0,
+                'luck_purchases': 0,
+                'luck': base_probabilities,
+                'rolls': max_rolls_per_hour,
+                'claims': max_claims_per_3_hours
+            }
