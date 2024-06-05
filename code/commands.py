@@ -1365,6 +1365,9 @@ def setup_commands(bot):
     async def init_server(ctx):
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
+        cards = guild_data[guild_id][1]
+        user_collections = guild_data[guild_id][2]
+        user_data = guild_data[guild_id][3]
         
         async with aiohttp.ClientSession() as session:
             for member in ctx.guild.members:
@@ -1404,10 +1407,7 @@ def setup_commands(bot):
                     'img': img_url,
                     'claimed_by': None
                 }
-
-                initialize_user(guild_id, user_id)
-                guild_data[guild_id][2][user_id]['cards'] = guild_data[guild_id][2][user_id].get('cards', [])
-                guild_data[guild_id][2][user_id]['cards'].append(card)
+                cards.append(card)
         
         save_data(guild_id, *guild_data[guild_id])
         await ctx.send("Server initialized successfully with member cards.")
