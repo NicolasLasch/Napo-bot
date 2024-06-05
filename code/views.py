@@ -323,7 +323,7 @@ class BlackMarketPaginator(discord.ui.View):
         embed.set_footer(text=f"Page {self.current_page + 1} of {total_pages}")
         return embed
 
-    @discord.ui.button(label="", emoji="⬅<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="", emoji="<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
     async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.current_page = (self.current_page - 1) % ((len(self.black_market) + self.items_per_page - 1) // self.items_per_page)
         embed = self.create_embed()
