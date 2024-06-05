@@ -260,12 +260,13 @@ class TopPaginator(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)
 
 class CollectionPaginator(discord.ui.View):
-    def __init__(self, guild_id, collection, current_page=0):
+    def __init__(self, guild_id, collection, member, current_page=0):
         super().__init__(timeout=60)
         self.guild_id = guild_id
         self.collection = collection
         self.current_page = current_page
         self.items_per_page = 10
+        self.member = member
 
     async def send_initial_message(self, ctx_or_interaction):
         embed = self.create_embed()
@@ -280,7 +281,7 @@ class CollectionPaginator(discord.ui.View):
         total_pages = (len(self.collection) + self.items_per_page - 1) // self.items_per_page
         collection_list = '\n'.join([f"**({card['rank']})** • {card['name']} - *{card['description']}*" for card in self.collection[start_index:end_index]])
         embed = discord.Embed(title="", description=collection_list)
-        embed.set_author(name=f" • {self.collection[0]['claimed_by']}'s Collection")
+        embed.set_author(name=f" • {self.member.display_name}'s Collection")
         embed.set_thumbnail(url=self.collection[0]['image_urls'][0])
         embed.set_footer(text=f"Page {self.current_page + 1} of {total_pages}")
         return embed

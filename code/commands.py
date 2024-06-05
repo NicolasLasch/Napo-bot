@@ -257,7 +257,7 @@ def setup_commands(bot):
             return
 
         collection = user_collections[user_id]
-        paginator = CollectionPaginator(guild_id, collection)
+        paginator = CollectionPaginator(guild_id, collection, member.display_name)
         await paginator.send_initial_message(ctx)
 
     @bot.tree.command(name="mm", description="Display your card collection or another user's collection")
@@ -1484,7 +1484,6 @@ def setup_commands(bot):
             save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
             await ctx.send(f"Auction for **{auction_data['character']['name']}** won by {winner.display_name} for {auction_data['current_price']} coins!")
         else:
-            # No bids, return character to owner
             original_owner_id = ctx.author.id
             guild_data[str(ctx.guild.id)][1].setdefault(str(original_owner_id), []).append(auction_data['character'])
             save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
@@ -1531,20 +1530,36 @@ def setup_commands(bot):
             if datetime.utcnow() >= auction_data['end_time']:
                 break
 
+        guild_id = str(ctx.guild.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+
         # Auction ended
         if auction_data['current_bidder']:
             winner_id = auction_data['current_bidder']
+            auctioneer_id = auction_data['auctioneer']
             winner = await ctx.guild.fetch_member(winner_id)
-            winner_data = guild_data[str(ctx.guild.id)][2][str(winner_id)]
+            winner_data = user_data[str(winner_id)]
+
+            # Update the claimed_by attribute
+            auction_data['character']['claimed_by'] = winner_id
+
+            # Deduct coins from the winner and add the card to their collection
             winner_data['coins'] -= auction_data['current_price']
-            guild_data[str(ctx.guild.id)][1].setdefault(str(winner_id), []).append(auction_data['character'])
-            save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
-            await ctx.send(f"Auction for **{auction_data['character']['name']}** won by {winner.display_name} for {auction_data['current_price']} coins!")
+            user_collections.setdefault(str(winner_id), []).append(auction_data['character'])
+
+            # Calculate the auctioneer's earnings (97% of the final bid)
+            auctioneer_earnings = int(auction_data['current_price'] * 0.97)
+            auctioneer_data = user_data[str(auctioneer_id)]
+            auctioneer_data['coins'] += auctioneer_earnings
+
+            save_data(guild_id, cards, user_collections, user_data)
+            await ctx.send(f"Auction for **{auction_data['character']['name']}** won by {winner.display_name} for {auction_data['current_price']} coins! The auctioneer earns {auctioneer_earnings} coins. Because of the 3% taxes...")
         else:
             # No bids, return character to owner
-            original_owner_id = ctx.author.id
-            guild_data[str(ctx.guild.id)][1].setdefault(str(original_owner_id), []).append(auction_data['character'])
-            save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
+            original_owner_id = auction_data['auctioneer']
+            user_collections.setdefault(str(original_owner_id), []).append(auction_data['character'])
+            save_data(guild_id, cards, user_collections, user_data)
             await ctx.send(f"Auction for **{auction_data['character']['name']}** ended with no bids.")
 
         del active_auctions[character_name]
+
