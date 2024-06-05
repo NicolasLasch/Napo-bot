@@ -1366,7 +1366,7 @@ def setup_commands(bot):
         for member in ctx.guild.members:
             user_id = str(member.id)
             nickname = member.display_name
-            profile_picture = member.avatar_url_as(format='jpeg')
+            profile_picture = member.avatar.url if member.avatar else member.default_avatar.url
 
             if ctx.guild.owner_id == member.id:
                 rank = 'SS'
