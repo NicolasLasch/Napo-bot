@@ -5,7 +5,7 @@ import random
 import asyncio
 from datetime import datetime, timedelta
 from utils import save_data, load_data, rank_sort_key, get_time_until_next_reset, scores, quiz_data
-from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator
+from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator, CollectionPaginator, TopPaginator
 import os
 from PIL import Image
 import requests
@@ -18,6 +18,7 @@ from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 
 # Define global variables for tracking rolls
+active_auctions = {}
 roll_cooldowns = {}
 max_rolls_per_hour = 5
 claim_cooldowns = {}
@@ -256,11 +257,8 @@ def setup_commands(bot):
             return
 
         collection = user_collections[user_id]
-        collection_list = '\n'.join([f"**({card['rank']})** • {card['name']} - *{card['description']}*" for card in collection[:10]])
-        embed = discord.Embed(title="", description=collection_list)
-        embed.set_author(name=f" • {member.display_name}'s Collection", icon_url=member.avatar.url)
-        embed.set_thumbnail(url=collection[0]['image_urls'][0])
-        await ctx.send(embed=embed)
+        paginator = CollectionPaginator(guild_id, collection)
+        await paginator.send_initial_message(ctx)
 
     @bot.tree.command(name="mm", description="Display your card collection or another user's collection")
     @app_commands.describe(member="The member whose collection you want to see")
@@ -276,11 +274,9 @@ def setup_commands(bot):
             return
 
         collection = user_collections[user_id]
-        collection_list = '\n'.join([f"**({card['rank']})** • {card['name']} - *{card['description']}*" for card in collection[:10]])
-        embed = discord.Embed(title="", description=collection_list)
-        embed.set_author(name=f" • {member.display_name}'s Collection", icon_url=member.avatar.url)
-        embed.set_thumbnail(url=collection[0]['image_urls'][0])
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        paginator = CollectionPaginator(guild_id, collection)
+        await paginator.send_initial_message(interaction)
+
 
 
     @bot.command(name="top")
@@ -294,10 +290,8 @@ def setup_commands(bot):
             return
 
         sorted_cards = sorted(cards, key=rank_sort_key)
-        top_list = '\n'.join([f"**({card['rank']})** • {card['name']} {'❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
-        embed = discord.Embed(title="<:naporight:1246789280211406888> • Top Characters", description=top_list)
-        embed.set_thumbnail(url=sorted_cards[0]['image_urls'][0])
-        await ctx.send(embed=embed)
+        paginator = TopPaginator(guild_id, sorted_cards)
+        await paginator.send_initial_message(ctx)
 
     @bot.tree.command(name="top", description="Display the top characters globally")
     async def top_app(interaction: discord.Interaction):
@@ -309,10 +303,9 @@ def setup_commands(bot):
             return
 
         sorted_cards = sorted(cards, key=rank_sort_key)
-        top_list = '\n'.join([f"**({card['rank']})** • {card['name']} {'❤️' if card['claimed_by'] else ''}" for card in sorted_cards[:10]])
-        embed = discord.Embed(title="<:naporight:1246789280211406888> • Top Characters", description=top_list)
-        embed.set_thumbnail(url=sorted_cards[0]['image_urls'][0])
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        paginator = TopPaginator(guild_id, sorted_cards)
+        await paginator.send_initial_message(interaction)
+
 
     @bot.command(name="mmi")
     async def mmi(ctx, member: discord.Member = None):
@@ -1363,7 +1356,7 @@ def setup_commands(bot):
         
     @is_admin()
     @bot.command()
-    async def init_server(ctx):
+    async def init_server(ctx, mod_rank: str, admin_rank: str):
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         cards, user_collections, user_data = guild_data[guild_id]
@@ -1378,9 +1371,9 @@ def setup_commands(bot):
 
                 if ctx.guild.owner_id == member.id:
                     rank = 'SS'
-                elif any(role.permissions.administrator for role in member.roles):
+                elif any(role.permissions.administrator for role in member.roles) or any(role.name.lower() == admin_rank for role in member.roles):
                     rank = 'S'
-                elif any(role.name.lower() == 'la squad' for role in member.roles):
+                elif any(role.name.lower() == mod_rank for role in member.roles):
                     rank = 'A'
                 else:
                     rank = random.choice(['B', 'C', 'D', 'E'])
@@ -1437,3 +1430,121 @@ def setup_commands(bot):
                 return
 
         await ctx.send(f"No card found with the name '{card_name}'.")
+
+    @bot.command(name="auction")
+    async def auction(ctx, character_name: str, starting_price: int):
+        """Command to start an auction for a character."""
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(ctx.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        
+        # Check if the user owns the character
+        character = next((c for c in user_collections.get(user_id, []) if c['name'].lower() == character_name.lower()), None)
+        if not character:
+            await ctx.send("You don't own this character.")
+            return
+
+        # Check if there is already an active auction for this character
+        if character_name.lower() in active_auctions:
+            await ctx.send("An auction for this character is already active.")
+            return
+
+        # Create auction entry
+        auction_data = {
+            "character": character,
+            "starting_price": starting_price,
+            "current_price": starting_price,
+            "current_bidder": None,
+            "end_time": datetime.utcnow() + timedelta(seconds=60)
+        }
+        active_auctions[character_name.lower()] = auction_data
+
+        # Remove character from user's collection
+        user_collections[user_id].remove(character)
+        save_data(guild_id, cards, user_collections, user_data)
+
+        await ctx.send(f"Auction started for **{character_name}** with a starting price of {starting_price} coins!")
+
+        await check_auction_timeout(ctx, character_name.lower(), auction_data)
+
+    async def check_auction_timeout(ctx, character_name, auction_data):
+        while datetime.utcnow() < auction_data['end_time']:
+            await asyncio.sleep(5)  # Check every 5 seconds
+            if datetime.utcnow() >= auction_data['end_time']:
+                break
+
+        # Auction ended
+        if auction_data['current_bidder']:
+            winner_id = auction_data['current_bidder']
+            winner = await ctx.guild.fetch_member(winner_id)
+            winner_data = guild_data[str(ctx.guild.id)][2][str(winner_id)]
+            winner_data['coins'] -= auction_data['current_price']
+            guild_data[str(ctx.guild.id)][1].setdefault(str(winner_id), []).append(auction_data['character'])
+            save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
+            await ctx.send(f"Auction for **{auction_data['character']['name']}** won by {winner.display_name} for {auction_data['current_price']} coins!")
+        else:
+            # No bids, return character to owner
+            original_owner_id = ctx.author.id
+            guild_data[str(ctx.guild.id)][1].setdefault(str(original_owner_id), []).append(auction_data['character'])
+            save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
+            await ctx.send(f"Auction for **{auction_data['character']['name']}** ended with no bids.")
+
+        del active_auctions[character_name]
+
+    @bot.command(name="bid")
+    async def bid(ctx, bid_amount: int):
+        """Command to place a bid on an active auction."""
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(ctx.author.id)
+        user_data = guild_data[guild_id][2]
+
+        # Check if there is an active auction
+        if not active_auctions:
+            await ctx.send("There are no active auctions.")
+            return
+
+        # Find the auction
+        auction_data = next(iter(active_auctions.values()))
+
+        # Check if the bid is higher than the current price
+        if bid_amount <= auction_data['current_price']:
+            await ctx.send(f"Your bid must be higher than the current price of {auction_data['current_price']} coins.")
+            return
+
+        # Check if the user has enough coins
+        if bid_amount > user_data[user_id]['coins']:
+            await ctx.send("You don't have enough coins to place this bid.")
+            return
+
+        # Update the auction
+        auction_data['current_price'] = bid_amount
+        auction_data['current_bidder'] = user_id
+        auction_data['end_time'] = datetime.utcnow() + timedelta(seconds=30)
+
+        await ctx.send(f"{ctx.author.display_name} has bid {bid_amount} coins on **{auction_data['character']['name']}**!")
+
+    async def check_auction_timeout(ctx, character_name, auction_data):
+        while datetime.utcnow() < auction_data['end_time']:
+            await asyncio.sleep(5)  # Check every 5 seconds
+            if datetime.utcnow() >= auction_data['end_time']:
+                break
+
+        # Auction ended
+        if auction_data['current_bidder']:
+            winner_id = auction_data['current_bidder']
+            winner = await ctx.guild.fetch_member(winner_id)
+            winner_data = guild_data[str(ctx.guild.id)][2][str(winner_id)]
+            winner_data['coins'] -= auction_data['current_price']
+            guild_data[str(ctx.guild.id)][1].setdefault(str(winner_id), []).append(auction_data['character'])
+            save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
+            await ctx.send(f"Auction for **{auction_data['character']['name']}** won by {winner.display_name} for {auction_data['current_price']} coins!")
+        else:
+            # No bids, return character to owner
+            original_owner_id = ctx.author.id
+            guild_data[str(ctx.guild.id)][1].setdefault(str(original_owner_id), []).append(auction_data['character'])
+            save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
+            await ctx.send(f"Auction for **{auction_data['character']['name']}** ended with no bids.")
+
+        del active_auctions[character_name]

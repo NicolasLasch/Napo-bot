@@ -221,3 +221,78 @@ class ImagePaginator(discord.ui.View):
         self.current_image = (self.current_image + 1) % len(self.card["image_urls"])
         embed = await self.create_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=self)
+
+class TopPaginator(discord.ui.View):
+    def __init__(self, guild_id, collection, current_page=0):
+        super().__init__(timeout=60)
+        self.guild_id = guild_id
+        self.collection = collection
+        self.current_page = current_page
+        self.items_per_page = 10
+
+    async def send_initial_message(self, ctx_or_interaction):
+        embed = self.create_embed()
+        if isinstance(ctx_or_interaction, commands.Context):
+            await ctx_or_interaction.send(embed=embed, view=self)
+        else:
+            await ctx_or_interaction.response.send_message(embed=embed, view=self)
+
+    def create_embed(self):
+        start_index = self.current_page * self.items_per_page
+        end_index = start_index + self.items_per_page
+        total_pages = (len(self.collection) + self.items_per_page - 1) // self.items_per_page
+        top_list = '\n'.join([f"**({card['rank']})** • {card['name']} {'❤️' if card['claimed_by'] else ''}" for card in self.collection[start_index:end_index]])
+        embed = discord.Embed(title="<:naporight:1246789280211406888> • Top Characters", description=top_list)
+        embed.set_thumbnail(url=self.collection[0]['image_urls'][0])
+        embed.set_footer(text=f"Page {self.current_page + 1} of {total_pages}")
+        return embed
+
+    @discord.ui.button(label="", emoji="<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
+    async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_page = (self.current_page - 1) % ((len(self.collection) + self.items_per_page - 1) // self.items_per_page)
+        embed = self.create_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="", emoji="<:right:1246472426410217594>", style=discord.ButtonStyle.secondary)
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_page = (self.current_page + 1) % ((len(self.collection) + self.items_per_page - 1) // self.items_per_page)
+        embed = self.create_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+class CollectionPaginator(discord.ui.View):
+    def __init__(self, guild_id, collection, current_page=0):
+        super().__init__(timeout=60)
+        self.guild_id = guild_id
+        self.collection = collection
+        self.current_page = current_page
+        self.items_per_page = 10
+
+    async def send_initial_message(self, ctx_or_interaction):
+        embed = self.create_embed()
+        if isinstance(ctx_or_interaction, commands.Context):
+            await ctx_or_interaction.send(embed=embed, view=self)
+        else:
+            await ctx_or_interaction.response.send_message(embed=embed, view=self)
+
+    def create_embed(self):
+        start_index = self.current_page * self.items_per_page
+        end_index = start_index + self.items_per_page
+        total_pages = (len(self.collection) + self.items_per_page - 1) // self.items_per_page
+        collection_list = '\n'.join([f"**({card['rank']})** • {card['name']} - *{card['description']}*" for card in self.collection[start_index:end_index]])
+        embed = discord.Embed(title="", description=collection_list)
+        embed.set_author(name=f" • {self.collection[0]['claimed_by']}'s Collection")
+        embed.set_thumbnail(url=self.collection[0]['image_urls'][0])
+        embed.set_footer(text=f"Page {self.current_page + 1} of {total_pages}")
+        return embed
+
+    @discord.ui.button(label="", emoji="<:left:1246472391052234762>", style=discord.ButtonStyle.secondary)
+    async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_page = (self.current_page - 1) % ((len(self.collection) + self.items_per_page - 1) // self.items_per_page)
+        embed = self.create_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="", emoji="<:right:1246472426410217594>", style=discord.ButtonStyle.secondary)
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.current_page = (self.current_page + 1) % ((len(self.collection) + self.items_per_page - 1) // self.items_per_page)
+        embed = self.create_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
