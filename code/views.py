@@ -319,7 +319,7 @@ class BlackMarketPaginator(discord.ui.View):
         total_pages = (len(self.black_market) + self.items_per_page - 1) // self.items_per_page
         listings = list(self.black_market.values())[start_index:end_index]
         listings_text = [f"**{item['character']['name']}** - {item['price']} coins (Seller: <@{item['seller_id']}>)" for item in listings]
-        embed = discord.Embed(title="<:naporight:1246789280211406888> • Black Market Listings", description="\n".join(listings_text))
+        embed = discord.Embed(title=" • Black Market Listings", description="\n".join(listings_text))
         embed.set_footer(text=f"Page {self.current_page + 1} of {total_pages}")
         return embed
 

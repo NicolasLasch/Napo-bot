@@ -1661,4 +1661,29 @@ def setup_commands(bot):
             return
 
         paginator = BlackMarketPaginator(guild_id, black_market)
-        await paginator.send_initial_message(ctx)
+        await paginator.send_initial_message(ctx) 
+
+    @bot.command(name="remove-item")
+    async def remove_item(ctx, character_name: str):
+        """Command to remove a character from the black market."""
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(ctx.author.id)
+        black_market = load_black_market(guild_id)
+        user_collections = guild_data[guild_id][1]
+
+        # Find the listing
+        listing_id = next((id for id in black_market if black_market[id]['character']['name'].lower() == character_name.lower() and black_market[id]['seller_id'] == user_id), None)
+        if not listing_id:
+            await ctx.send("You don't have this character listed on the black market.")
+            return
+
+        # Remove the listing and restore the character to the user's collection
+        character = black_market[listing_id]['character']
+        user_collections.setdefault(user_id, []).append(character)
+        save_data(guild_id, *guild_data[guild_id])
+
+        del black_market[listing_id]
+        save_black_market(guild_id, black_market)
+
+        await ctx.send(f"Character **{character_name}** has been removed from the black market and returned to your collection.")
