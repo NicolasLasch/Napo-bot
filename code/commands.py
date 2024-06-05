@@ -7,6 +7,9 @@ from datetime import datetime, timedelta
 from utils import save_data, load_data, rank_sort_key, get_time_until_next_reset, scores, quiz_data
 from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator
 import os
+from PIL import Image
+import requests
+import io
 import sys
 from config import guild_data
 import yt_dlp
@@ -1293,3 +1296,36 @@ def setup_commands(bot):
                     break
 
         await vc.disconnect()
+
+        @bot.command()
+        async def upload(ctx):
+            if not ctx.message.attachments:
+                await ctx.send("Please attach an image.")
+                return
+
+            attachment = ctx.message.attachments[0]
+            image_data = await attachment.read()
+            
+            # Resize the image
+            with Image.open(io.BytesIO(image_data)) as img:
+                img = img.resize((225, 350))
+                
+                # Save the image to a bytes buffer
+                buffer = io.BytesIO()
+                img.save(buffer, format="JPEG")
+                buffer.seek(0)
+
+            # Upload the image to imgchest.com
+            upload_url = "https://api.imgchest.com/v1/post"
+            files = {'images[]': ('image.jpg', buffer, 'image/jpeg')}
+            data = {'title': 'Uploaded via Discord Bot', 'privacy': 'hidden'}
+            headers = {'Authorization': 'SpEMZxXfd0VCVLPTyLbslGGGls3Ahei5a2RQcZqZ3263746c'}
+            
+            response = requests.post(upload_url, headers=headers, data=data, files=files)
+
+            if response.status_code == 200:
+                response_data = response.json()
+                image_url = response_data['data']['images'][0]['link']
+                await ctx.send(f"Image uploaded: {image_url}")
+            else:
+                await ctx.send("Failed to upload image.")
