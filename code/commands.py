@@ -1045,9 +1045,8 @@ def setup_commands(bot):
                         receiver_card['claimed_by'] = sender_id
                         user_collections[sender_id].append(receiver_card)
                     
-                    cards, user_collections, user_data = guild_data[guild_id]
 
-                    save_data(guild_id, *guild_data[guild_id], user_collections, user_data)
+                    save_data(guild_id, *guild_data[guild_id])
                     await ctx.send(f'Trade successful! {sender.display_name} traded {", ".join(sender_cards)} with {user.display_name} for {", ".join(receiver_cards)}.')
                 else:
                     await ctx.send('Trade cancelled.')
@@ -1110,8 +1109,7 @@ def setup_commands(bot):
                         receiver_card['claimed_by'] = sender_id
                         user_collections[sender_id].append(receiver_card)
                         
-                    cards, user_collections, user_data = guild_data[guild_id]
-                    save_data(guild_id, *guild_data[guild_id], user_collections, user_data)
+                    save_data(guild_id, *guild_data[guild_id])
                     await interaction.channel.send(f'Trade successful! {sender.display_name} traded {", ".join(sender_cards)} with {user.display_name} for {", ".join(receiver_cards)}.')
                 else:
                     await interaction.channel.send('Trade cancelled.')
@@ -1411,8 +1409,7 @@ def setup_commands(bot):
                 guild_data[guild_id][2][user_id]['cards'] = guild_data[guild_id][2][user_id].get('cards', [])
                 guild_data[guild_id][2][user_id]['cards'].append(card)
         
-        cards, user_collections, user_data = guild_data[guild_id]
-        save_data(guild_id, *guild_data[guild_id], user_collections, user_data)
+        save_data(guild_id, *guild_data[guild_id])
         await ctx.send("Server initialized successfully with member cards.")
 
     # Add necessary setup functions
