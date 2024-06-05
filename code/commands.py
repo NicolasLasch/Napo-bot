@@ -1324,7 +1324,8 @@ def setup_commands(bot):
         response = requests.post(upload_url, headers=headers, data=data, files=files)
 
         if response.status_code == 200:
-            response_data = response.json()
+            print(response)
+            response_data = response
             image_url = response_data['data']['images'][0]['link']
             await ctx.send(f"Image uploaded: {image_url}")
         else:
