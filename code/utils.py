@@ -66,6 +66,24 @@ def get_time_until_next_reset():
         next_reset_time += timedelta(days=1)
     return next_reset_time - now
 
+def get_black_market_file(guild_id):
+    return os.path.join(DATA_DIR, f'{guild_id}_black_market.json')
+
+def load_black_market(guild_id):
+    black_market_file = get_black_market_file(guild_id)
+    try:
+        with open(black_market_file, 'r') as f:
+            black_market = json.load(f)
+    except FileNotFoundError:
+        black_market = {}
+    return black_market
+
+def save_black_market(guild_id, black_market):
+    black_market_file = get_black_market_file(guild_id)
+    with open(black_market_file, 'w') as f:
+        json.dump(black_market, f, indent=4)
+
+
 scores = {}
 
 quiz_data = {

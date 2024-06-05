@@ -4,8 +4,8 @@ from discord import app_commands
 import random
 import asyncio
 from datetime import datetime, timedelta
-from utils import save_data, load_data, rank_sort_key, get_time_until_next_reset, scores, quiz_data
-from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator, CollectionPaginator, TopPaginator
+from utils import save_data, load_data, rank_sort_key, get_time_until_next_reset, scores, quiz_data, save_black_market, load_black_market
+from views import ClaimButton, GemButton, Paginator, GlobalPaginator, ImagePaginator, CollectionPaginator, TopPaginator, BlackMarketPaginator
 import os
 from PIL import Image
 import requests
@@ -437,7 +437,9 @@ def setup_commands(bot):
         character_name = parts[0].strip()
         page_number = int(parts[1].strip()) if len(parts) > 1 and parts[1].strip().isdigit() else 1
 
-        card = next((c for c in cards if c['name'].lower() == character_name.lower()), None)
+        matched_character, score = process.extractOne(character_name, cards.keys(), scorer=fuzz.ratio)
+
+        card = matched_character
         if not card:
             await ctx.send('Card not found.')
             return
@@ -1522,7 +1524,7 @@ def setup_commands(bot):
         
         # Check if the user has enough coins
         if user_id == auction_data['auctioneer']:
-            await ctx.send("Youcannot bid on your own auction.")
+            await ctx.send("You cannot bid on your own auction.")
             return
 
         # Update the auction
@@ -1571,3 +1573,92 @@ def setup_commands(bot):
 
         del active_auctions[character_name]
 
+    @bot.command(name="sell")
+    async def sell(ctx, character_name: str, price: int):
+        """Command to list a character on the black market."""
+        guild_id = str(ctx.guild.id)
+        initialize_guild(guild_id)
+        user_id = str(ctx.author.id)
+        cards, user_collections, user_data = guild_data[guild_id]
+        black_market = load_black_market(guild_id)
+        
+        # Check if the user owns the character
+        character = next((c for c in user_collections.get(user_id, []) if c['name'].lower() == character_name.lower()), None)
+        if not character:
+            await ctx.send("You don't own this character.")
+            return
+
+        # Check if the user already has 3 items on the market
+        user_listings = [item for item in black_market.values() if item['seller_id'] == user_id]
+        if len(user_listings) >= 3:
+            await ctx.send("You can only have 3 items on the market at a time.")
+            return
+
+        # Add the character to the black market
+        listing_id = f"{character_name.lower()}_{user_id}"
+        black_market[listing_id] = {
+            "character": character,
+            "price": price,
+            "seller_id": user_id
+        }
+        user_collections[user_id].remove(character)
+        save_black_market(guild_id, black_market)
+        save_data(guild_id, cards, user_collections, user_data)
+
+        await ctx.send(f"Character **{character_name}** listed on the black market for {price} coins.")
+
+        @bot.command(name="buy")
+        async def buy(ctx, character_name: str):
+            """Command to buy a character from the black market."""
+            guild_id = str(ctx.guild.id)
+            initialize_guild(guild_id)
+            user_id = str(ctx.author.id)
+            user_data = guild_data[guild_id][2]
+            black_market = load_black_market(guild_id)
+
+            # Find the listing
+            listing_id = next((id for id in black_market if black_market[id]['character']['name'].lower() == character_name.lower()), None)
+            if not listing_id:
+                await ctx.send("This character is not on the black market.")
+                return
+
+            listing = black_market[listing_id]
+            price = listing['price']
+
+            # Check if the user has enough coins
+            if user_data[user_id]['coins'] < price:
+                await ctx.send("You don't have enough coins to buy this character.")
+                return
+
+            # Transfer the character and update coins
+            seller_id = listing['seller_id']
+            seller_data = guild_data[guild_id][2][seller_id]
+            tax = int(price * 0.03)
+            net_price = price - tax
+
+            user_data[user_id]['coins'] -= price
+            seller_data['coins'] += net_price
+            character = listing['character']
+            character['claimed_by'] = user_id
+
+            guild_data[guild_id][1].setdefault(user_id, []).append(character)
+            save_data(guild_id, *guild_data[guild_id])
+
+            # Remove the listing
+            del black_market[listing_id]
+            save_black_market(guild_id, black_market)
+
+            await ctx.send(f"You bought **{character_name}** for {price} coins. The seller received {net_price} coins after tax.")
+
+        @bot.command(name="black_market")
+        async def black_market_command(ctx):
+            """Command to display the black market listings."""
+            guild_id = str(ctx.guild.id)
+            black_market = load_black_market(guild_id)
+
+            if not black_market:
+                await ctx.send("The black market is empty.")
+                return
+
+            paginator = BlackMarketPaginator(guild_id, black_market)
+            await paginator.send_initial_message(ctx)
