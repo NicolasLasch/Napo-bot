@@ -1365,9 +1365,7 @@ def setup_commands(bot):
     async def init_server(ctx):
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
-        cards = guild_data[guild_id][1]
-        user_collections = guild_data[guild_id][2]
-        user_data = guild_data[guild_id][3]
+        cards, user_collections, user_data = guild_data[guild_id]
         
         async with aiohttp.ClientSession() as session:
             for member in ctx.guild.members:
