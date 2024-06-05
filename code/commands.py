@@ -1285,11 +1285,11 @@ def setup_commands(bot):
 
             os.remove(audio_file)
 
-            if any(score >= 10 for score in scores.values() or fastend == True):
+            if any(score >= 10 for score in scores.values()) or fastend == True:
                 if fastend == True:
-                    await ctx.send(f'Game ended because of !end.')
                     scores.clear()
                     fastend = False
+                    await ctx.send(f'Game ended because of !end.')
                     break
                 else: 
                     winner = max(scores, key=scores.get)
@@ -1360,7 +1360,8 @@ def setup_commands(bot):
             print(f"Failed to upload image. HTTP Status Code: {response.status_code}")
             print(f"Response content: {response.content.decode('utf-8')}")
             return None
-
+        
+    @is_admin()
     @bot.command()
     async def init_server(ctx):
         guild_id = str(ctx.guild.id)
@@ -1369,7 +1370,8 @@ def setup_commands(bot):
         
         async with aiohttp.ClientSession() as session:
             for member in ctx.guild.members:
-                print(member.display_name)
+                if member.bot:
+                    continue
                 user_id = str(member.id)
                 nickname = member.display_name
                 profile_picture = member.avatar.url if member.avatar else member.default_avatar.url
@@ -1378,13 +1380,13 @@ def setup_commands(bot):
                     rank = 'SS'
                 elif any(role.permissions.administrator for role in member.roles):
                     rank = 'S'
-                elif any(role.name.lower() == 'mod' for role in member.roles):
+                elif any(role.name.lower() == 'la squad' for role in member.roles):
                     rank = 'A'
                 else:
                     rank = random.choice(['B', 'C', 'D', 'E'])
                 
                 rank_description = rank
-                price = {'SS': 500, 'S': 400, 'A': 300, 'B': 200, 'C': 100, 'D': 50, 'E': 20}[rank]
+                price = {'SS': 1200, 'S': 1000, 'A': 800, 'B': 600, 'C': 350, 'D': 150, 'E': 40}[rank]
 
                 # Fetch profile picture
                 async with session.get(profile_picture) as resp:
