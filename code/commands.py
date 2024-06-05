@@ -1369,6 +1369,7 @@ def setup_commands(bot):
         
         async with aiohttp.ClientSession() as session:
             for member in ctx.guild.members:
+                print(member.display_name)
                 user_id = str(member.id)
                 nickname = member.display_name
                 profile_picture = member.avatar.url if member.avatar else member.default_avatar.url
