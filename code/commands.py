@@ -10,6 +10,7 @@ import os
 from PIL import Image
 import requests
 import io
+import aiohttp
 import sys
 from config import guild_data
 import yt_dlp
