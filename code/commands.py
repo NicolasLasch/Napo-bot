@@ -1341,6 +1341,7 @@ def setup_commands(bot):
     async def upload_image(image_data):
         with Image.open(io.BytesIO(image_data)) as img:
             img = img.resize((225, 350))
+            img = img.convert("RGB")
             buffer = io.BytesIO()
             img.save(buffer, format="JPEG")
             buffer.seek(0)
