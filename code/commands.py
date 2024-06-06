@@ -1462,11 +1462,6 @@ def setup_commands(bot):
             await ctx.send("An auction for this character is already active.")
             return
 
-        # Remove character from user's collection and reset claimed_by
-        character['claimed_by'] = None
-        user_collections[user_id].remove(character)
-        save_data(guild_id, cards, user_collections, user_data)
-
         # Create auction entry
         auction_data = {
             "character": character,
@@ -1481,30 +1476,6 @@ def setup_commands(bot):
         await ctx.send(f"Auction started for **{character_name}** with a starting price of {starting_price} coins!")
 
         await check_auction_timeout(ctx, character_name.lower(), auction_data)
-
-
-    async def check_auction_timeout(ctx, character_name, auction_data):
-        while datetime.utcnow() < auction_data['end_time']:
-            await asyncio.sleep(5)  # Check every 5 seconds
-            if datetime.utcnow() >= auction_data['end_time']:
-                break
-
-        # Auction ended
-        if auction_data['current_bidder']:
-            winner_id = auction_data['current_bidder']
-            winner = await ctx.guild.fetch_member(winner_id)
-            winner_data = guild_data[str(ctx.guild.id)][2][str(winner_id)]
-            winner_data['coins'] -= auction_data['current_price']
-            guild_data[str(ctx.guild.id)][1].setdefault(str(winner_id), []).append(auction_data['character'])
-            save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
-            await ctx.send(f"Auction for **{auction_data['character']['name']}** won by {winner.display_name} for {auction_data['current_price']} coins!")
-        else:
-            original_owner_id = ctx.author.id
-            guild_data[str(ctx.guild.id)][1].setdefault(str(original_owner_id), []).append(auction_data['character'])
-            save_data(str(ctx.guild.id), *guild_data[str(ctx.guild.id)])
-            await ctx.send(f"Auction for **{auction_data['character']['name']}** ended with no bids.")
-
-        del active_auctions[character_name]
 
     @bot.command(name="bid")
     async def bid(ctx, bid_amount: int):
@@ -1568,7 +1539,8 @@ def setup_commands(bot):
             cards = next(c for c in cards if c['name'].lower() == auction_data['character']['name'].lower())
             cards['claimed_by'] = str(winner_id)
             user_collections.setdefault(str(winner_id), []).append(auction_data['character'])
-
+            # Remove character from user's collection and reset claimed_by
+            user_collections[auctioneer_id].remove(auction_data['character'])
             # Calculate the auctioneer's earnings (97% of the final bid)
             auctioneer_earnings = int(auction_data['current_price'] * 0.97)
             auctioneer_data = user_data[str(auctioneer_id)]
@@ -1577,10 +1549,6 @@ def setup_commands(bot):
             save_data(guild_id, cards, user_collections, user_data)
             await ctx.send(f"Auction for **{auction_data['character']['name']}** won by {winner.display_name} for {auction_data['current_price']} coins! The auctioneer earns {auctioneer_earnings} coins. Because of the 3% taxes...")
         else:
-            # No bids, return character to owner
-            original_owner_id = auction_data['auctioneer']
-            user_collections.setdefault(str(original_owner_id), []).append(auction_data['character'])
-            save_data(guild_id, cards, user_collections, user_data)
             await ctx.send(f"Auction for **{auction_data['character']['name']}** ended with no bids.")
 
         del active_auctions[character_name]
@@ -1654,7 +1622,7 @@ def setup_commands(bot):
         character = listing['character']
         character['claimed_by'] = user_id
         cards, user_collections, user_data = guild_data[guild_id]
-        cards = next(c for c in cards if c['name'].lower() == character.lower())
+        cards = next(c for c in cards if c['name'].lower() == character['name'].lower())
         cards['claimed_by'] = user_id
         user_collections[seller_id].remove(character)
         user_collections[user_id].append(character)
