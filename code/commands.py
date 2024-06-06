@@ -437,7 +437,7 @@ def setup_commands(bot):
         character_name = parts[0].strip()
         page_number = int(parts[1].strip()) if len(parts) > 1 and parts[1].strip().isdigit() else 1
 
-        matched_character, score = process.extractOne(character_name, cards.keys(), scorer=fuzz.ratio)
+        matched_character, score = process.extractOne(character_name, cards, scorer=fuzz.ratio)
 
         card = matched_character
         if not card:
@@ -1560,7 +1560,7 @@ def setup_commands(bot):
 
             # Deduct coins from the winner and add the card to their collection
             winner_data['coins'] -= auction_data['current_price']
-            cards = next(c for c in cards if c['name'].lower() == auction_data['character'].lower())
+            cards = next(c for c in cards if c['name'].lower() == auction_data['character']['name'].lower())
             cards['claimed_by'] = str(winner_id)
             user_collections.setdefault(str(winner_id), []).append(auction_data['character'])
 
