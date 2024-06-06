@@ -993,6 +993,7 @@ def setup_commands(bot):
         guild_id = str(ctx.guild.id)
         initialize_guild(guild_id)
         user_collections = guild_data[guild_id][1]
+        user_cards= guild_data[guild_id][0]
         sender = ctx.message.author
         sender_id = str(sender.id)
         receiver_id = str(user.id)
@@ -1031,12 +1032,16 @@ def setup_commands(bot):
                     for card_name in sender_cards:
                         sender_card = next(c for c in user_collections[sender_id] if c['name'].lower() == card_name.lower())
                         user_collections[sender_id].remove(sender_card)
+                        cards = next(c for c in user_cards if c['name'].lower() == card_name.lower())
+                        cards['claimed_by'] = receiver_id
                         sender_card['claimed_by'] = receiver_id
                         user_collections[receiver_id].append(sender_card)
 
                     for card_name in receiver_cards:
                         receiver_card = next(c for c in user_collections[receiver_id] if c['name'].lower() == card_name.lower())
                         user_collections[receiver_id].remove(receiver_card)
+                        cards = next(c for c in user_cards if c['name'].lower() == card_name.lower())
+                        cards['claimed_by'] = sender_id
                         receiver_card['claimed_by'] = sender_id
                         user_collections[sender_id].append(receiver_card)
                     
@@ -1555,6 +1560,8 @@ def setup_commands(bot):
 
             # Deduct coins from the winner and add the card to their collection
             winner_data['coins'] -= auction_data['current_price']
+            cards = next(c for c in cards if c['name'].lower() == auction_data['character'].lower())
+            cards['claimed_by'] = str(winner_id)
             user_collections.setdefault(str(winner_id), []).append(auction_data['character'])
 
             # Calculate the auctioneer's earnings (97% of the final bid)
@@ -1614,6 +1621,7 @@ def setup_commands(bot):
         initialize_guild(guild_id)
         user_id = str(ctx.author.id)
         user_data = guild_data[guild_id][2]
+        user_collections = guild_data[guild_id][1]
         black_market = load_black_market(guild_id)
 
         # Find the listing
@@ -1640,8 +1648,12 @@ def setup_commands(bot):
         seller_data['coins'] += net_price
         character = listing['character']
         character['claimed_by'] = user_id
-
-        guild_data[guild_id][1].setdefault(user_id, []).append(character)
+        cards, user_collections, user_data = guild_data[guild_id]
+        cards = next(c for c in cards if c['name'].lower() == character.lower())
+        cards['claimed_by'] = user_id
+        user_collections[seller_id].remove(character)
+        user_collections[user_id].append(character)
+        # guild_data[guild_id][1].setdefault(user_id, []).append(character)
         save_data(guild_id, *guild_data[guild_id])
 
         # Remove the listing
