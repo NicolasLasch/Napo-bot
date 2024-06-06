@@ -437,13 +437,18 @@ def setup_commands(bot):
         character_name = parts[0].strip()
         page_number = int(parts[1].strip()) if len(parts) > 1 and parts[1].strip().isdigit() else 1
 
-        matched_character, score = process.extractOne(character_name, cards, scorer=fuzz.ratio)
+        card_names = [card['name'] for card in cards]  # Replace 'name' with the appropriate key
 
-        card = matched_character
-        if not card:
+        # Find the most matching character using fuzzy matching
+        matched_character, score = process.extractOne(character_name, card_names, scorer=fuzz.ratio)
+
+        if not matched_character:
             await ctx.send('Card not found.')
             return
 
+        # Find the corresponding card dictionary
+        card = next(card for card in cards if card['name'] == matched_character)
+        
         paginator = ImagePaginator(guild_id, card, page_number - 1)
         await paginator.send_initial_message(ctx)
 
